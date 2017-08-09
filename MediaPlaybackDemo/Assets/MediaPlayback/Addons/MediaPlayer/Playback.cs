@@ -90,7 +90,7 @@ namespace MediaPlayer
 
         public void Play()
         {
-            Play(null); // play already loaded item
+            Play(null); // play or resume already loaded item
         }
 
         public void Play(string selectedItem)
@@ -131,6 +131,17 @@ namespace MediaPlayer
             currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
             State = PlaybackState.None;
             currentItem = string.Empty;
+
+            if (playbackTexture != null)
+            {
+                byte[] dummyData = new byte[playbackTexture.width * playbackTexture.height * 4];
+
+                Texture2D dummyTex = new Texture2D(playbackTexture.width, playbackTexture.height, playbackTexture.format, false);
+                dummyTex.LoadRawTextureData(dummyData);
+                dummyTex.Apply();
+                Graphics.CopyTexture(dummyTex, playbackTexture);
+                Destroy(dummyTex);
+            }
         }
 
 
