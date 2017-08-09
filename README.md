@@ -19,4 +19,4 @@ cd vcpkg
 
 If built successfully, **MediaPlayback\Unity\MediaPlayback\** should have all Unity files required.
 
-**Changes in C# files in the demo project (MediaPlaybackDemo) stay only there. MediaPlayback solution has its own "master" copy of C# files.**
+**Changes in C# files in the demo project (MediaPlaybackDemo) stay only there. MediaPlayback solution has its own "master" copy of C# files (UnityAddonFiles solution folder).**
