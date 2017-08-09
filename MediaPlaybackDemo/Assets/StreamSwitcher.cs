@@ -6,51 +6,62 @@ public class StreamSwitcher : MonoBehaviour
 {
     public string[] streams;
 
-	// Use this for initialization
-	void Start ()
-    {
-		
-	}
+    private GUIContent[] buttons;
 
-    private void OnGUI()
+    // Use this for initialization
+    void Start ()
     {
         if (streams != null && streams.Length > 0)
         {
+            buttons = new GUIContent[streams.Length];
             for (int i = 0; i < streams.Length; i++)
             {
-                GUIContent content = new GUIContent(string.Format("Stream {0}", i + 1), streams[i]);
-                if (GUI.Button(new Rect(1, 28 + i * 50, 100, 40), content))
-                {
-                    PlayStream(i);
-                }
+                var c = new GUIContent(string.Format("Stream {0}", i + 1), streams[i]);
+                buttons[i] = c;
             }
-            GUI.Label(new Rect(1, 1, 1000, 24), GUI.tooltip);
         }
+    }
+
+    private void OnGUI()
+    {
+        if (buttons == null || buttons.Length == 0)
+            return;
 
         MediaPlayer.Playback player = gameObject.GetComponent<MediaPlayer.Playback>();
-        if(player != null && player.State != MediaPlayer.PlaybackState.None && player.State != MediaPlayer.PlaybackState.Ended)
-        {
-            if (player.State == MediaPlayer.PlaybackState.Playing || player.State == MediaPlayer.PlaybackState.Paused)
-            {
-                if (player.State == MediaPlayer.PlaybackState.Playing)
-                {
-                    if (GUI.Button(new Rect(110, 28, 100, 40), "Pause"))
-                    {
-                        player.Pause();
-                    }
-                }
-                else
-                {
-                    if (GUI.Button(new Rect(110, 28, 100, 40), "Resume"))
-                    {
-                        player.Play();
-                    }
-                }
 
-                if (GUI.Button(new Rect(110, 80, 100, 40), "Stop"))
+        GUILayout.Label(GUI.tooltip);
+
+        for (int i = 0; i < streams.Length; i++)
+        {
+            if (GUI.Button(new Rect(1, 28 + i * 50, 100, 40), buttons[i]))
+            {
+                PlayStream(i);
+            }
+        }
+        
+        if (player == null || player.State == MediaPlayer.PlaybackState.None || player.State == MediaPlayer.PlaybackState.Ended)
+            return;
+
+        if (player.State == MediaPlayer.PlaybackState.Playing || player.State == MediaPlayer.PlaybackState.Paused)
+        {
+            if (player.State == MediaPlayer.PlaybackState.Playing)
+            {
+                if (GUI.Button(new Rect(110, 28, 100, 40), "Pause"))
                 {
-                    player.Stop();
+                    player.Pause();
                 }
+            }
+            else
+            {
+                if (GUI.Button(new Rect(110, 28, 100, 40), "Resume"))
+                {
+                    player.Play();
+                }
+            }
+
+            if (GUI.Button(new Rect(110, 80, 100, 40), "Stop"))
+            {
+                player.Stop();
             }
         }
     }

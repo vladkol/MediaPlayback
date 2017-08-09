@@ -1,0 +1,307 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>10.0.20506</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{EC954EA1-34D8-06A7-1D92-877B1E5B2428}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AssemblyName>Assembly-CSharp-player</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <TargetFrameworkProfile></TargetFrameworkProfile>
+    <CompilerResponseFile></CompilerResponseFile>
+    <UnityProjectType>Game:1</UnityProjectType>
+    <UnityBuildTarget>WSAPlayer:21</UnityBuildTarget>
+    <UnityVersion>5.6.2p4-MRTP14</UnityVersion>
+    <RootNamespace></RootNamespace>
+    <LangVersion>6</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>Temp\UnityVS_bin\Debug\</OutputPath>
+    <IntermediateOutputPath>Temp\UnityVS_obj\Debug\</IntermediateOutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DefineConstants>DEBUG;TRACE;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_5_6_2;UNITY_5_6;UNITY_5;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_GENERICS;ENABLE_PVR_GI;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_RUNTIME_NAVMESH_BUILDING;ENABLE_SPRITERENDERER_FLIPPING;ENABLE_SPRITES;ENABLE_TERRAIN;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_WEBCAM;ENABLE_WWW;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_HUB;ENABLE_CLOUD_PROJECT_ID;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_EDITOR_METRICS;ENABLE_EDITOR_METRICS_CACHING;ENABLE_NATIVE_ARRAY;INCLUDE_DYNAMIC_GI;INCLUDE_GI;RENDER_SOFTWARE_CURSOR;INCLUDE_PUBNUB;ENABLE_PLAYMODE_TESTS_RUNNER;ENABLE_SCRIPTING_NEW_CSHARP_COMPILER;ENABLE_VIDEO;UNITY_METRO;UNITY_METRO_API;UNITY_WINRT;ENABLE_WINRT_PINVOKE;ENABLE_LAZY_METHOD_CACHING;ENABLE_MOVIES;ENABLE_CRUNCH_TEXTURE_COMPRESSION;ENABLE_NETWORK;ENABLE_EVENT_QUEUE;UNITY_PLATFORM_THREAD_TO_CORE_MAPPING;ENABLE_SUBSTANCE;PLATFORM_SUPPORTS_ADS_ID;ENABLE_UNITYWEBREQUEST;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;CURL_STATICLIB;ENABLE_VR;UNITY_WSA;ENABLE_IL2CPP;NET_4_6;ENABLE_PROFILER;UNITY_WSA_10_0;UNITY_WINRT_10_0;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_NATIVE_ARRAY_CHECKS;UNITY_TEAM_LICENSE;ENABLE_VSTU;ENABLE_WINMD_SUPPORT;WINDOWS_UWP</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>Temp\UnityVS_bin\Release\</OutputPath>
+    <IntermediateOutputPath>Temp\UnityVS_obj\Release\</IntermediateOutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DefineConstants>TRACE;UNITY_5_3_OR_NEWER;UNITY_5_4_OR_NEWER;UNITY_5_5_OR_NEWER;UNITY_5_6_OR_NEWER;UNITY_5_6_2;UNITY_5_6;UNITY_5;ENABLE_AUDIO;ENABLE_CACHING;ENABLE_CLOTH;ENABLE_GENERICS;ENABLE_PVR_GI;ENABLE_MICROPHONE;ENABLE_MULTIPLE_DISPLAYS;ENABLE_PHYSICS;ENABLE_RUNTIME_NAVMESH_BUILDING;ENABLE_SPRITERENDERER_FLIPPING;ENABLE_SPRITES;ENABLE_TERRAIN;ENABLE_UNET;ENABLE_LZMA;ENABLE_UNITYEVENTS;ENABLE_WEBCAM;ENABLE_WWW;ENABLE_CLOUD_SERVICES_COLLAB;ENABLE_CLOUD_HUB;ENABLE_CLOUD_PROJECT_ID;ENABLE_CLOUD_SERVICES_UNET;ENABLE_CLOUD_SERVICES_BUILD;ENABLE_CLOUD_LICENSE;ENABLE_EDITOR_METRICS;ENABLE_EDITOR_METRICS_CACHING;ENABLE_NATIVE_ARRAY;INCLUDE_DYNAMIC_GI;INCLUDE_GI;RENDER_SOFTWARE_CURSOR;INCLUDE_PUBNUB;ENABLE_PLAYMODE_TESTS_RUNNER;ENABLE_SCRIPTING_NEW_CSHARP_COMPILER;ENABLE_VIDEO;UNITY_METRO;UNITY_METRO_API;UNITY_WINRT;ENABLE_WINRT_PINVOKE;ENABLE_LAZY_METHOD_CACHING;ENABLE_MOVIES;ENABLE_CRUNCH_TEXTURE_COMPRESSION;ENABLE_NETWORK;ENABLE_EVENT_QUEUE;UNITY_PLATFORM_THREAD_TO_CORE_MAPPING;ENABLE_SUBSTANCE;PLATFORM_SUPPORTS_ADS_ID;ENABLE_UNITYWEBREQUEST;ENABLE_CLOUD_SERVICES;ENABLE_CLOUD_SERVICES_ADS;ENABLE_CLOUD_SERVICES_ANALYTICS;ENABLE_CLOUD_SERVICES_PURCHASING;ENABLE_CLOUD_SERVICES_CRASH_REPORTING;CURL_STATICLIB;ENABLE_VR;UNITY_WSA;ENABLE_IL2CPP;NET_4_6;ENABLE_PROFILER;UNITY_WSA_10_0;UNITY_WINRT_10_0;DEBUG;TRACE;UNITY_ASSERTIONS;UNITY_EDITOR;UNITY_EDITOR_64;UNITY_EDITOR_WIN;ENABLE_NATIVE_ARRAY_CHECKS;UNITY_TEAM_LICENSE;ENABLE_VSTU;ENABLE_WINMD_SUPPORT;WINDOWS_UWP</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib" />
+    <Reference Include="System" />
+    <Reference Include="System.XML" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="UnityEngine">
+      <HintPath>Library\UnityAssemblies\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>Library\UnityAssemblies\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Networking">
+      <HintPath>Library\UnityAssemblies\UnityEngine.Networking.dll</HintPath>
+    </Reference>
+    <Reference Include="Windows">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.15063.0\Facade\Windows.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Calls.CallsVoipContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Calls.CallsVoipContract\1.0.0.0\Windows.ApplicationModel.Calls.CallsVoipContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.SocialInfo.SocialInfoContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.SocialInfo.SocialInfoContract\2.0.0.0\Windows.ApplicationModel.SocialInfo.SocialInfoContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Devices.DevicesLowLevelContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Devices.DevicesLowLevelContract\3.0.0.0\Windows.Devices.DevicesLowLevelContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Devices.Printers.PrintersContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Devices.Printers.PrintersContract\1.0.0.0\Windows.Devices.Printers.PrintersContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Foundation.FoundationContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Foundation.FoundationContract\3.0.0.0\Windows.Foundation.FoundationContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Foundation.UniversalApiContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Foundation.UniversalApiContract\4.0.0.0\Windows.Foundation.UniversalApiContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Graphics.Printing3D.Printing3DContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Graphics.Printing3D.Printing3DContract\3.0.0.0\Windows.Graphics.Printing3D.Printing3DContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Networking.Connectivity.WwanContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Networking.Connectivity.WwanContract\1.0.0.0\Windows.Networking.Connectivity.WwanContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Services.Store.StoreContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Services.Store.StoreContract\2.0.0.0\Windows.Services.Store.StoreContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Services.TargetedContent.TargetedContentContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Services.TargetedContent.TargetedContentContract\1.0.0.0\Windows.Services.TargetedContent.TargetedContentContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.System.Profile.ProfileHardwareTokenContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.System.Profile.ProfileHardwareTokenContract\1.0.0.0\Windows.System.Profile.ProfileHardwareTokenContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.System.Profile.ProfileSharedModeContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.System.Profile.ProfileSharedModeContract\2.0.0.0\Windows.System.Profile.ProfileSharedModeContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.UI.ViewManagement.ViewManagementViewScalingContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.UI.ViewManagement.ViewManagementViewScalingContract\1.0.0.0\Windows.UI.ViewManagement.ViewManagementViewScalingContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Activation.ActivatedEventsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Activation.ActivatedEventsContract\1.0.0.0\Windows.ApplicationModel.Activation.ActivatedEventsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Activation.ActivationCameraSettingsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Activation.ActivationCameraSettingsContract\1.0.0.0\Windows.ApplicationModel.Activation.ActivationCameraSettingsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Activation.ContactActivatedEventsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Activation.ContactActivatedEventsContract\1.0.0.0\Windows.ApplicationModel.Activation.ContactActivatedEventsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Activation.WebUISearchActivatedEventsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Activation.WebUISearchActivatedEventsContract\1.0.0.0\Windows.ApplicationModel.Activation.WebUISearchActivatedEventsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Background.BackgroundAlarmApplicationContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Background.BackgroundAlarmApplicationContract\1.0.0.0\Windows.ApplicationModel.Background.BackgroundAlarmApplicationContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Calls.Background.CallsBackgroundContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Calls.Background.CallsBackgroundContract\1.0.0.0\Windows.ApplicationModel.Calls.Background.CallsBackgroundContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Calls.LockScreenCallContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Calls.LockScreenCallContract\1.0.0.0\Windows.ApplicationModel.Calls.LockScreenCallContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.FullTrustAppContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.FullTrustAppContract\1.0.0.0\Windows.ApplicationModel.FullTrustAppContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Preview.InkWorkspace.PreviewInkWorkspaceContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Preview.InkWorkspace.PreviewInkWorkspaceContract\1.0.0.0\Windows.ApplicationModel.Preview.InkWorkspace.PreviewInkWorkspaceContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Preview.Notes.PreviewNotesContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Preview.Notes.PreviewNotesContract\2.0.0.0\Windows.ApplicationModel.Preview.Notes.PreviewNotesContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Resources.Management.ResourceIndexerContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Resources.Management.ResourceIndexerContract\1.0.0.0\Windows.ApplicationModel.Resources.Management.ResourceIndexerContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Search.Core.SearchCoreContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Search.Core.SearchCoreContract\1.0.0.0\Windows.ApplicationModel.Search.Core.SearchCoreContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Search.SearchContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Search.SearchContract\1.0.0.0\Windows.ApplicationModel.Search.SearchContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.StartupTaskContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.StartupTaskContract\1.0.0.0\Windows.ApplicationModel.StartupTaskContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Wallet.WalletContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Wallet.WalletContract\1.0.0.0\Windows.ApplicationModel.Wallet.WalletContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Devices.Custom.CustomDeviceContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Devices.Custom.CustomDeviceContract\1.0.0.0\Windows.Devices.Custom.CustomDeviceContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Devices.Portable.PortableDeviceContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Devices.Portable.PortableDeviceContract\1.0.0.0\Windows.Devices.Portable.PortableDeviceContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Devices.Printers.Extensions.ExtensionsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Devices.Printers.Extensions.ExtensionsContract\2.0.0.0\Windows.Devices.Printers.Extensions.ExtensionsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Devices.Scanners.ScannerDeviceContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Devices.Scanners.ScannerDeviceContract\1.0.0.0\Windows.Devices.Scanners.ScannerDeviceContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Devices.Sms.LegacySmsApiContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Devices.Sms.LegacySmsApiContract\1.0.0.0\Windows.Devices.Sms.LegacySmsApiContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Gaming.Input.GamingInputPreviewContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Gaming.Input.GamingInputPreviewContract\1.0.0.0\Windows.Gaming.Input.GamingInputPreviewContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Gaming.Preview.GamesEnumerationContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Gaming.Preview.GamesEnumerationContract\1.0.0.0\Windows.Gaming.Preview.GamesEnumerationContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Gaming.UI.GameChatOverlayContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Gaming.UI.GameChatOverlayContract\1.0.0.0\Windows.Gaming.UI.GameChatOverlayContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Globalization.GlobalizationJapanesePhoneticAnalyzerContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Globalization.GlobalizationJapanesePhoneticAnalyzerContract\1.0.0.0\Windows.Globalization.GlobalizationJapanesePhoneticAnalyzerContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Management.Deployment.Preview.DeploymentPreviewContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Management.Deployment.Preview.DeploymentPreviewContract\1.0.0.0\Windows.Management.Deployment.Preview.DeploymentPreviewContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Management.Workplace.WorkplaceSettingsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Management.Workplace.WorkplaceSettingsContract\1.0.0.0\Windows.Management.Workplace.WorkplaceSettingsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Media.Capture.AppBroadcastContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Media.Capture.AppBroadcastContract\1.0.0.0\Windows.Media.Capture.AppBroadcastContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Media.Capture.AppCaptureContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Media.Capture.AppCaptureContract\4.0.0.0\Windows.Media.Capture.AppCaptureContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Media.Capture.CameraCaptureUIContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Media.Capture.CameraCaptureUIContract\1.0.0.0\Windows.Media.Capture.CameraCaptureUIContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Media.Capture.GameBarContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Media.Capture.GameBarContract\1.0.0.0\Windows.Media.Capture.GameBarContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Media.Devices.CallControlContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Media.Devices.CallControlContract\1.0.0.0\Windows.Media.Devices.CallControlContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Media.MediaControlContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Media.MediaControlContract\1.0.0.0\Windows.Media.MediaControlContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Media.Playlists.PlaylistsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Media.Playlists.PlaylistsContract\1.0.0.0\Windows.Media.Playlists.PlaylistsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Media.Protection.ProtectionRenewalContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Media.Protection.ProtectionRenewalContract\1.0.0.0\Windows.Media.Protection.ProtectionRenewalContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Networking.NetworkOperators.LegacyNetworkOperatorsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Networking.NetworkOperators.LegacyNetworkOperatorsContract\1.0.0.0\Windows.Networking.NetworkOperators.LegacyNetworkOperatorsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Networking.Sockets.ControlChannelTriggerContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Networking.Sockets.ControlChannelTriggerContract\2.0.0.0\Windows.Networking.Sockets.ControlChannelTriggerContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Perception.Automation.Core.PerceptionAutomationCoreContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Perception.Automation.Core.PerceptionAutomationCoreContract\1.0.0.0\Windows.Perception.Automation.Core.PerceptionAutomationCoreContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Security.EnterpriseData.EnterpriseDataContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Security.EnterpriseData.EnterpriseDataContract\4.0.0.0\Windows.Security.EnterpriseData.EnterpriseDataContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Security.ExchangeActiveSyncProvisioning.EasContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Security.ExchangeActiveSyncProvisioning.EasContract\1.0.0.0\Windows.Security.ExchangeActiveSyncProvisioning.EasContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Services.Maps.GuidanceContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Services.Maps.GuidanceContract\2.0.0.0\Windows.Services.Maps.GuidanceContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Services.Maps.LocalSearchContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Services.Maps.LocalSearchContract\3.0.0.0\Windows.Services.Maps.LocalSearchContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.System.Profile.SystemManufacturers.SystemManufacturersContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.System.Profile.SystemManufacturers.SystemManufacturersContract\1.0.0.0\Windows.System.Profile.SystemManufacturers.SystemManufacturersContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.System.Profile.ProfileRetailInfoContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.System.Profile.ProfileRetailInfoContract\1.0.0.0\Windows.System.Profile.ProfileRetailInfoContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.System.UserProfile.UserProfileContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.System.UserProfile.UserProfileContract\1.0.0.0\Windows.System.UserProfile.UserProfileContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.System.UserProfile.UserProfileLockScreenContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.System.UserProfile.UserProfileLockScreenContract\1.0.0.0\Windows.System.UserProfile.UserProfileLockScreenContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.UI.ApplicationSettings.ApplicationsSettingsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.UI.ApplicationSettings.ApplicationsSettingsContract\1.0.0.0\Windows.UI.ApplicationSettings.ApplicationsSettingsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.UI.Core.AnimationMetrics.AnimationMetricsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.UI.Core.AnimationMetrics.AnimationMetricsContract\1.0.0.0\Windows.UI.Core.AnimationMetrics.AnimationMetricsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.UI.Core.CoreWindowDialogsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.UI.Core.CoreWindowDialogsContract\1.0.0.0\Windows.UI.Core.CoreWindowDialogsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.UI.Xaml.Hosting.HostingContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.UI.Xaml.Hosting.HostingContract\1.0.0.0\Windows.UI.Xaml.Hosting.HostingContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Web.Http.Diagnostics.HttpDiagnosticsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Web.Http.Diagnostics.HttpDiagnosticsContract\2.0.0.0\Windows.Web.Http.Diagnostics.HttpDiagnosticsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.System.SystemManagementContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.System.SystemManagementContract\3.0.0.0\Windows.System.SystemManagementContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.Calls.CallsPhoneContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.Calls.CallsPhoneContract\3.0.0.0\Windows.ApplicationModel.Calls.CallsPhoneContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.ApplicationModel.CommunicationBlocking.CommunicationBlockingContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.ApplicationModel.CommunicationBlocking.CommunicationBlockingContract\2.0.0.0\Windows.ApplicationModel.CommunicationBlocking.CommunicationBlockingContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Devices.SmartCards.SmartCardBackgroundTriggerContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Devices.SmartCards.SmartCardBackgroundTriggerContract\3.0.0.0\Windows.Devices.SmartCards.SmartCardBackgroundTriggerContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Devices.SmartCards.SmartCardEmulatorContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Devices.SmartCards.SmartCardEmulatorContract\4.0.0.0\Windows.Devices.SmartCards.SmartCardEmulatorContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Embedded.DeviceLockdown.DeviceLockdownContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Embedded.DeviceLockdown.DeviceLockdownContract\1.0.0.0\Windows.Embedded.DeviceLockdown.DeviceLockdownContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Networking.NetworkOperators.NetworkOperatorsFdnContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Networking.NetworkOperators.NetworkOperatorsFdnContract\1.0.0.0\Windows.Networking.NetworkOperators.NetworkOperatorsFdnContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Phone.PhoneContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Phone.PhoneContract\1.0.0.0\Windows.Phone.PhoneContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Phone.StartScreen.DualSimTileContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.Phone.StartScreen.DualSimTileContract\1.0.0.0\Windows.Phone.StartScreen.DualSimTileContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.UI.WebUI.Core.WebUICommandBarContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\10.0.15063.0\Windows.UI.WebUI.Core.WebUICommandBarContract\1.0.0.0\Windows.UI.WebUI.Core.WebUICommandBarContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Gaming.XboxLive.StorageApiContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\Windows.Gaming.XboxLive.StorageApiContract\1.0.0.0\Windows.Gaming.XboxLive.StorageApiContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows.Networking.XboxLive.XboxLiveSecureSocketsContract">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\References\Windows.Networking.XboxLive.XboxLiveSecureSocketsContract\1.0.0.0\Windows.Networking.XboxLive.XboxLiveSecureSocketsContract.winmd</HintPath>
+    </Reference>
+    <Reference Include="Windows">
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.15063.0\Facade\Windows.winmd</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.WindowsRuntime">
+      <HintPath>C:\Program Files\Unity_5.6.2p4-MRTP14\Editor\Data\il2cpp\BCLExtensions\System.Runtime.WindowsRuntime.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.WindowsRuntime.UI.Xaml">
+      <HintPath>C:\Program Files\Unity_5.6.2p4-MRTP14\Editor\Data\il2cpp\BCLExtensions\System.Runtime.WindowsRuntime.UI.Xaml.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\MediaItemsUI.cs" />
+    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\MediaPlaybackRunner.cs" />
+    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\Playback.cs" />
+    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\States.cs" />
+    <Compile Include="Assets\PlayerTime.cs" />
+    <Compile Include="Assets\StreamSwitcher.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="GenerateTargetFrameworkMonikerAttribute" />
+</Project>

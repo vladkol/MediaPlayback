@@ -42,7 +42,15 @@ namespace MediaPlayer
                     if (this.PlaybackStateChanged != null)
                     {
                         var args = new ChangedEventArgs<PlaybackState>(this.previousState, this.currentState);
+
+#if UNITY_UWP
+                        UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                        {
+                            this.PlaybackStateChanged(this, args);
+                        }, false);
+#else
                         this.PlaybackStateChanged(this, args);
+#endif
                     }
                 }
             }
