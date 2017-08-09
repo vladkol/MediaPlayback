@@ -17,6 +17,9 @@
 //*****************************************************************************
 
 #include "pch.h"
+
+#ifndef NO_FFMPEG
+
 #include "UncompressedSampleProvider.h"
 
 using namespace FFmpegInterop;
@@ -132,3 +135,6 @@ HRESULT UncompressedSampleProvider::DecodeAVPacket(IDataWriter* dataWriter, AVPa
 
     return hr;
 }
+
+
+#endif // NO_FFMPEG

@@ -18,6 +18,8 @@
 
 #include "pch.h"
 
+#ifndef NO_FFMPEG
+
 #include "UncompressedAudioSampleProvider.h"
 
 using namespace FFmpegInterop;
@@ -109,3 +111,5 @@ HRESULT UncompressedAudioSampleProvider::ProcessDecodedFrame(IDataWriter* dataWr
 
     return S_OK;
 }
+
+#endif // NO_FFMPEG

@@ -17,6 +17,9 @@
 //*****************************************************************************
 
 #include "pch.h"
+
+#ifndef NO_FFMPEG
+
 #include "FFmpegInteropMSS.h"
 #include "MediaSampleProvider.h"
 #include "H264AVCSampleProvider.h"
@@ -882,3 +885,4 @@ static int64_t FileStreamSeek(void* ptr, int64_t pos, int whence)
     return out.QuadPart; // Return the new position:
 }
 
+#endif // NO_FFMPEG

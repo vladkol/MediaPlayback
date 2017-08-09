@@ -19,7 +19,9 @@
 #include <windows.media.streaming.adaptive.h>
 #include <windows.graphics.directx.direct3d11.interop.h>
 
-#include "FFMpegInterop\FFmpegInteropMSS.h"
+#ifndef NO_FFMPEG
+	#include "FFMpegInterop\FFmpegInteropMSS.h"
+#endif 
 
 typedef ABI::Windows::Foundation::IAsyncOperation<ABI::Windows::Media::Streaming::Adaptive::AdaptiveMediaSourceCreationResult*> ICreateAdaptiveMediaSourceOperation;
 typedef ABI::Windows::Foundation::IAsyncOperationCompletedHandler<ABI::Windows::Media::Streaming::Adaptive::AdaptiveMediaSourceCreationResult*> ICreateAdaptiveMediaSourceResultHandler;
@@ -33,12 +35,16 @@ HRESULT CreateMediaSource(
     _In_ LPCWSTR pszUrl,
     _COM_Outptr_ ABI::Windows::Media::Core::IMediaSource2** ppMediaSource);
 
+#ifndef NO_FFMPEG
+
 HRESULT CreateFFmpegMediaSource(
     _In_ LPCWSTR pszUrl,
     _In_ bool forceAudioDecode,
     _In_ bool forceVideoDecode,
     _COM_Outptr_ FFmpegInterop::IFFmpegInteropMSS** ppFFmpegMSS,
     _COM_Outptr_ ABI::Windows::Media::Core::IMediaSource2** ppMediaSource);
+
+#endif 
 
 HRESULT CreateAdaptiveMediaSource(
     _In_ LPCWSTR pszManifestLocation,

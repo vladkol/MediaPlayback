@@ -17,6 +17,9 @@
 //*****************************************************************************
 
 #include "pch.h"
+
+#ifndef NO_FFMPEG
+
 #include "UncompressedVideoSampleProvider.h"
 
 extern "C"
@@ -137,3 +140,5 @@ HRESULT UncompressedVideoSampleProvider::WriteAVPacketToStream(IDataWriter* data
 
     return S_OK;
 }
+
+#endif // NO_FFMPEG

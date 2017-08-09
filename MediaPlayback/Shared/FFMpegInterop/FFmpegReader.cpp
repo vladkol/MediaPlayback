@@ -17,6 +17,9 @@
 //*****************************************************************************
 
 #include "pch.h"
+
+#ifndef NO_FFMPEG
+
 #include "FFmpegReader.h"
 
 using namespace FFmpegInterop;
@@ -98,3 +101,5 @@ void FFmpegReader::SetVideoStream(int videoStreamIndex, std::weak_ptr<MediaSampl
         locked->SetCurrentStreamIndex(m_videoStreamIndex);
     }
 }
+
+#endif // NO_FFMPEG

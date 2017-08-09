@@ -12,7 +12,10 @@
 #include "pch.h"
 #include "MediaPlayerPlayback.h"
 #include "MediaHelpers.h"
-#include "FFMpegInterop/FFmpegInteropMSS.h"
+
+#ifndef NO_FFMPEG
+	#include "FFMpegInterop/FFmpegInteropMSS.h"
+#endif
 
 using namespace Microsoft::WRL;
 using namespace ABI::Windows::Graphics::DirectX::Direct3D11;
@@ -175,8 +178,13 @@ HRESULT CMediaPlayerPlayback::LoadContent(
     ComPtr<IMediaSource2> spMediaSource2;
     if (useFFmpeg)
     {
+#ifndef NO_FFMPEG
         // true for audio will be uncompressed
         IFR(CreateFFmpegMediaSource(pszContentLocation, true, forceVideoDecode, &m_ffmpegInteropMSS, &spMediaSource2));
+#else
+		OutputDebugStringW(L"\n### The library is built without FFMPEG support! ###\n");
+		IFR(E_UNEXPECTED);
+#endif
     }
     else
     {

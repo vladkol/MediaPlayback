@@ -10,7 +10,9 @@
 //*********************************************************
 #pragma once
 
-#include "FFMpegInterop/FFmpegInteropMSS.h"
+#ifndef NO_FFMPEG
+	#include "FFMpegInterop\FFmpegInteropMSS.h"
+#endif 
 
 enum class StateType : UINT16
 {
@@ -167,7 +169,9 @@ private:
 
 	bool m_bIgnoreEvents;
 
+#ifndef NO_FFMPEG
     Microsoft::WRL::ComPtr<FFmpegInterop::IFFmpegInteropMSS> m_ffmpegInteropMSS;
+#endif
 
     Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackSession> m_mediaPlaybackSession;
     EventRegistrationToken m_stateChangedEventToken;

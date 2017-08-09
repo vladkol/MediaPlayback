@@ -129,7 +129,7 @@ xcopy "$(TargetDir)libeay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plu
 xcopy "$(TargetDir)ssleay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
 xcopy "$(TargetDir)swresample-2.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
 xcopy "$(TargetDir)swscale-4.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
-</Command>
+SET ERRORLEVEL=0</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>del /f /s /q "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\$(TargetFileName)"
@@ -168,7 +168,7 @@ xcopy "$(TargetDir)libeay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plu
 xcopy "$(TargetDir)ssleay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
 xcopy "$(TargetDir)swresample-2.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
 xcopy "$(TargetDir)swscale-4.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
-</Command>
+SET ERRORLEVEL=0</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>del /f /s /q "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\$(TargetFileName)"
@@ -207,7 +207,7 @@ xcopy "$(TargetDir)libeay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plu
 xcopy "$(TargetDir)ssleay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
 xcopy "$(TargetDir)swresample-2.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
 xcopy "$(TargetDir)swscale-4.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
-</Command>
+SET ERRORLEVEL=0</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>del /f /s /q "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\$(TargetFileName)"
@@ -246,7 +246,7 @@ xcopy "$(TargetDir)libeay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plu
 xcopy "$(TargetDir)ssleay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
 xcopy "$(TargetDir)swresample-2.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
 xcopy "$(TargetDir)swscale-4.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\"
-</Command>
+SET ERRORLEVEL=0</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>del /f /s /q "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\WSA\$(PlatformShortName)\$(TargetFileName)"

@@ -17,6 +17,9 @@
 //*****************************************************************************
 
 #include "pch.h"
+
+#ifndef NO_FFMPEG
+
 #include "MediaSampleProvider.h"
 #include "FFmpegInteropMSS.h"
 #include "FFmpegReader.h"
@@ -205,3 +208,5 @@ void MediaSampleProvider::Flush()
         av_packet_unref(&PopPacket());
     }
 }
+
+#endif // NO_FFMPEG

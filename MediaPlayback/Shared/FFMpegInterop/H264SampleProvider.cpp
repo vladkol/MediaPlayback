@@ -17,6 +17,9 @@
 //*****************************************************************************
 
 #include "pch.h"
+
+#ifndef NO_FFMPEG
+
 #include "H264SampleProvider.h"
 
 using namespace FFmpegInterop;
@@ -75,3 +78,5 @@ HRESULT H264SampleProvider::GetSPSAndPPSBuffer(IDataWriter* dataWriter)
 
     return hr;
 }
+
+#endif // NO_FFMPEG

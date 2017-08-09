@@ -196,6 +196,9 @@ HRESULT CreateMediaSource(
     return S_OK;
 }
 
+
+#ifndef NO_FFMPEG
+
 HRESULT CreateFFmpegMediaSource(
     _In_ LPCWSTR pszUrl,
     _In_ bool forceAudioDecode,
@@ -272,6 +275,8 @@ HRESULT CreateFFmpegMediaSource(
 
     return S_OK;
 }
+
+#endif // NO_FFMPEG
 
 HRESULT CreateAdaptiveMediaSource(
     LPCWSTR pszManifestLocation,

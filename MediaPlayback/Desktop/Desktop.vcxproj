@@ -127,6 +127,7 @@ xcopy "$(TargetDir)avutil-55.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Pl
 xcopy "$(TargetDir)libeay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
 xcopy "$(TargetDir)swresample-2.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
 xcopy "$(TargetDir)swscale-4.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
+SET ERRORLEVEL=0
 </Command>
     </PostBuildEvent>
     <PreBuildEvent>
@@ -168,6 +169,7 @@ xcopy "$(TargetDir)avutil-55.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Pl
 xcopy "$(TargetDir)libeay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
 xcopy "$(TargetDir)swresample-2.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
 xcopy "$(TargetDir)swscale-4.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
+SET ERRORLEVEL=0
 </Command>
     </PostBuildEvent>
     <PreBuildEvent>
@@ -213,6 +215,7 @@ xcopy "$(TargetDir)avutil-55.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Pl
 xcopy "$(TargetDir)libeay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
 xcopy "$(TargetDir)swresample-2.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
 xcopy "$(TargetDir)swscale-4.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
+SET ERRORLEVEL=0
 </Command>
     </PostBuildEvent>
     <PreBuildEvent>
@@ -258,6 +261,7 @@ xcopy "$(TargetDir)avutil-55.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Pl
 xcopy "$(TargetDir)libeay32.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
 xcopy "$(TargetDir)swresample-2.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
 xcopy "$(TargetDir)swscale-4.dll" "$(SolutionDir)Unity\$(SolutionName)\Assets\Plugins\$(PlatformShortName)\"
+SET ERRORLEVEL=0
 </Command>
     </PostBuildEvent>
     <PreBuildEvent>

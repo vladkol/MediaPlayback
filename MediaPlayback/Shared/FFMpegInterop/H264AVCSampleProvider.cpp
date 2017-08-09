@@ -17,6 +17,9 @@
 //*****************************************************************************
 
 #include "pch.h"
+
+#ifndef NO_FFMPEG
+
 #include "H264AVCSampleProvider.h"
 
 using namespace FFmpegInterop;
@@ -164,3 +167,4 @@ HRESULT H264AVCSampleProvider::WriteNALPacket(IDataWriter* dataWriter, AVPacket*
     return hr;
 }
 
+#endif // NO_FFMPEG
