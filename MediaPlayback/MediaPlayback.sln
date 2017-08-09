@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.15
+VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UWP", "UWP\UWP.vcxproj", "{4A859119-6730-4612-987F-DABF98F213ED}"
 EndProject
@@ -11,11 +11,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Launcher", "Launcher\Launcher.vcxproj", "{A0794987-78D5-4435-8BD7-B414F461CFAB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnityAddonFiles", "UnityAddonFiles", "{880F0E63-8845-4579-B883-A77D1B4AF986}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EasyMovieTexture", "EasyMovieTexture", "{AC5A3CAC-050C-44AC-B0FC-1994B657E5E9}"
-	ProjectSection(SolutionItems) = preProject
-		Unity\MediaPlayback\Assets\Addons\EasyMovieTexture\MediaPlayerCtrlAddon.cs = Unity\MediaPlayback\Assets\Addons\EasyMovieTexture\MediaPlayerCtrlAddon.cs
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MediaPlayer", "MediaPlayer", "{12A77DDC-29AA-4485-8AFB-43D59B12370E}"
 	ProjectSection(SolutionItems) = preProject
@@ -66,7 +61,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{AC5A3CAC-050C-44AC-B0FC-1994B657E5E9} = {880F0E63-8845-4579-B883-A77D1B4AF986}
 		{12A77DDC-29AA-4485-8AFB-43D59B12370E} = {880F0E63-8845-4579-B883-A77D1B4AF986}
 	EndGlobalSection
 EndGlobal
