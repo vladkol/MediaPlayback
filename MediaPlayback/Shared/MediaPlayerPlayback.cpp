@@ -707,6 +707,7 @@ HRESULT CMediaPlayerPlayback::OnDownloadRequested(ABI::Windows::Media::Streaming
 	ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSourceDownloadRequestedDeferral> deferral;
 	args->GetDeferral(&deferral);
 
+#ifdef LS_HEVC_FIX
 	ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSourceDownloadResult> result;
 	ComPtr<ABI::Windows::Foundation::IUriRuntimeClass> uri;
 
@@ -739,7 +740,9 @@ HRESULT CMediaPlayerPlayback::OnDownloadRequested(ABI::Windows::Media::Streaming
 			result->put_ResourceUri(uriNew.Get());
 			OutputDebugStringW(L"Resource URI processed\n");
 		}
+
 	}
+#endif
 
 	deferral->Complete();
 

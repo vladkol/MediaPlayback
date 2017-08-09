@@ -11,6 +11,9 @@
 
 #pragma once
 
+// uncomment next line if you want in all stream URIs ".libx265." to be replaced with ".libx264." and all ".hevc_nvenc." - with ".h264_nvenc."
+//#define LS_HEVC_FIX 1 
+
 #include "targetver.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
