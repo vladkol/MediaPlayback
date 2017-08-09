@@ -14,9 +14,9 @@ cd vcpkg
 .\vcpkg integrate install (**from an admin command prompt** to have Visual Studio integration)
 .\vcpkg install ffmpeg:x86-uwp ffmpeg:x64-uwp ffmpeg:x86-windows ffmpeg:x64-windows
 ```
-* Open MediaPlayback/MediaPlayback.sln 
-* Build Desktop and UWP projects 
+* Open **MediaPlayback/MediaPlayback.sln** 
+* Build **Desktop** and **UWP** projects 
 
-If built successfully, MediaPlayback\Unity\MediaPlayback\ should have all Unity files required.
+If built successfully, **MediaPlayback\Unity\MediaPlayback\** should have all Unity files required.
 
-**Changes in C# file in the demo project stay only there. MediaPlayback solution has its own "master" copy of C# files.**
+**Changes in C# files in the demo project stay only there. MediaPlayback solution has its own "master" copy of C# files.**
