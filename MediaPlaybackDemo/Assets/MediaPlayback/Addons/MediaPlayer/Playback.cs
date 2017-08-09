@@ -130,6 +130,7 @@ namespace MediaPlayer
             CheckHR(Plugin.Stop(pluginInstance));
             currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
             State = PlaybackState.None;
+            currentItem = string.Empty;
         }
 
 
