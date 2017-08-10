@@ -5,7 +5,9 @@ using UnityEngine;
 
 public class PlayerTime : MonoBehaviour {
 
-    public TextMesh text;
+    public TextMesh textMesh = null;
+    public UnityEngine.UI.Text uiText = null;
+
     public MediaPlayer.Playback player;
 
 	// Use this for initialization
@@ -16,9 +18,9 @@ public class PlayerTime : MonoBehaviour {
 	// Update is called once per frame
 	void Update ()
     {
-        string posText = "Start playback";
+        string posText = "--:--:--.--";
 
-        if (player != null && text != null && player.State != MediaPlayer.PlaybackState.None)
+        if (player != null && player.State != MediaPlayer.PlaybackState.None)
         {
             long position = player.GetPosition();
 
@@ -27,6 +29,9 @@ public class PlayerTime : MonoBehaviour {
             posText = string.Format("{0:D2}:{1:D2}:{2:D2}.{3:D3}", t.Hours, t.Minutes, t.Seconds, t.Milliseconds);
         }
 
-        text.text = posText;
+        if(textMesh != null)
+            textMesh.text = posText;
+        if (uiText != null)
+            uiText.text = posText;
     }
 }

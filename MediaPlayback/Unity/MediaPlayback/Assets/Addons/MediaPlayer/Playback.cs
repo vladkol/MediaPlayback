@@ -43,7 +43,7 @@ namespace MediaPlayer
                     {
                         var args = new ChangedEventArgs<PlaybackState>(this.previousState, this.currentState);
 
-#if UNITY_UWP
+#if UNITY_WSA_10_0
                         UnityEngine.WSA.Application.InvokeOnAppThread(() =>
                         {
                             this.PlaybackStateChanged(this, args);
@@ -265,8 +265,8 @@ namespace MediaPlayer
                 return;
             }
 
-#if UNITY_UWP
-        UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+#if UNITY_WSA_10_0
+            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
         {
             thisObject.OnStateChanged(args);
         }, false);

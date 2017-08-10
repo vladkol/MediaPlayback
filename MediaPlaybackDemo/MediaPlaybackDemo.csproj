@@ -82,9 +82,8 @@
     <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\MediaItemsUI.cs" />
     <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\MediaPlaybackRunner.cs" />
     <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\Playback.cs" />
+    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\PlayerTime.cs" />
     <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\States.cs" />
-    <Compile Include="Assets\PlayerTime.cs" />
-    <Compile Include="Assets\StreamSwitcher.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />
