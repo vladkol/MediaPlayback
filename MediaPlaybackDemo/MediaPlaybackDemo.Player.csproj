@@ -16,7 +16,7 @@
     <CompilerResponseFile></CompilerResponseFile>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>WSAPlayer:21</UnityBuildTarget>
-    <UnityVersion>2017.2.0b7-MR-PRERELEASE</UnityVersion>
+    <UnityVersion>2017.2.0b8</UnityVersion>
     <RootNamespace></RootNamespace>
     <LangVersion>6</LangVersion>
   </PropertyGroup>
@@ -405,10 +405,10 @@
       <HintPath>C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.15063.0\Facade\Windows.winmd</HintPath>
     </Reference>
     <Reference Include="System.Runtime.WindowsRuntime">
-      <HintPath>C:\Program Files\Unity 2017.2.0b7-MR-PRERELEASE\Editor\Data\il2cpp\BCLExtensions\System.Runtime.WindowsRuntime.dll</HintPath>
+      <HintPath>C:\Program Files\Unity 2017.2.0b8\Editor\Data\il2cpp\BCLExtensions\System.Runtime.WindowsRuntime.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime.WindowsRuntime.UI.Xaml">
-      <HintPath>C:\Program Files\Unity 2017.2.0b7-MR-PRERELEASE\Editor\Data\il2cpp\BCLExtensions\System.Runtime.WindowsRuntime.UI.Xaml.dll</HintPath>
+      <HintPath>C:\Program Files\Unity 2017.2.0b8\Editor\Data\il2cpp\BCLExtensions\System.Runtime.WindowsRuntime.UI.Xaml.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
