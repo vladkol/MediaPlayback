@@ -145,6 +145,11 @@ HRESULT FFmpegInteropMSS::RuntimeClassInitialize(
     // Open media in the given URI using the specified options
     if (avformat_open_input(&avFormatCtx, charStr, NULL, &avDict) < 0)
     {
+		if (avFormatCtx != nullptr)
+		{
+			avformat_free_context(avFormatCtx);
+			avFormatCtx = nullptr;
+		}
         IFR(E_FAIL); // Error opening file
     }
 
@@ -208,7 +213,12 @@ HRESULT FFmpegInteropMSS::RuntimeClassInitialize(
     // access within the app installation directory and appdata folder. Custom IO allows access to file selected using FilePicker dialog.
     if (avformat_open_input(&avFormatCtx, "", NULL, &avDict) < 0)
     {
-        IFR(E_FAIL); // Error opening file
+		if (avFormatCtx != nullptr)
+		{
+			avformat_free_context(avFormatCtx);
+			avFormatCtx = nullptr;
+		}
+		IFR(E_FAIL); // Error opening file
     }
 
     // avDict is not NULL only when there is an issue with the given ffmpegOptions such as invalid key, value type etc. Iterate through it to see which one is causing the issue.
