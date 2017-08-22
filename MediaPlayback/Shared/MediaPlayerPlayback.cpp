@@ -195,15 +195,14 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 	spMediaSource2.As(&spMediaSource4);
 	if (spMediaSource4.Get() != nullptr)
 	{
-		Microsoft::WRL::ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource> spAdaptiveMediaSource;
-		spMediaSource4->get_AdaptiveMediaSource(&spAdaptiveMediaSource);
+		assert(m_spAdaptiveMediaSource.Get() == nullptr);
+		spMediaSource4->get_AdaptiveMediaSource(m_spAdaptiveMediaSource.ReleaseAndGetAddressOf());
 
-		if (spAdaptiveMediaSource.Get() != nullptr)
+		if (m_spAdaptiveMediaSource.Get() != nullptr)
 		{
 			OutputDebugStringW(L"Adding DownloadRequested handler...");
-			EventRegistrationToken downloadRequestedEventToken;
 			auto downloadRequested = Microsoft::WRL::Callback<IDownloadRequestedEventHandler>(this, &CMediaPlayerPlayback::OnDownloadRequested);
-			spAdaptiveMediaSource->add_DownloadRequested(downloadRequested.Get(), &downloadRequestedEventToken);
+			m_spAdaptiveMediaSource->add_DownloadRequested(downloadRequested.Get(), &m_downloadRequestedEventToken);
 			OutputDebugStringW(L" added.\n");
 		}
 	}
@@ -415,6 +414,13 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
 
     if (nullptr != m_mediaPlayer)
     {
+		if (m_spAdaptiveMediaSource.Get() != nullptr)
+		{
+			LOG_RESULT(m_spAdaptiveMediaSource->remove_DownloadRequested(m_downloadRequestedEventToken));
+			m_spAdaptiveMediaSource.Reset();
+			m_spAdaptiveMediaSource = nullptr;
+		}
+
         ComPtr<IMediaPlayer5> spMediaPlayer5;
         if (SUCCEEDED(m_mediaPlayer.As(&spMediaPlayer5)))
         {
@@ -697,16 +703,6 @@ HRESULT CMediaPlayerPlayback::OnStateChanged(
         m_fnStateCallback(m_pClientObject, playbackState);
 
     return S_OK;
-}
-
-void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring& to) {
-	if (from.empty())
-		return;
-	size_t start_pos = 0;
-	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-		str.replace(start_pos, from.length(), to);
-		start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
-	}
 }
 
 _Use_decl_annotations_

@@ -166,12 +166,15 @@ private:
     EventRegistrationToken m_endedEventToken;
     EventRegistrationToken m_failedEventToken;
     EventRegistrationToken m_videoFrameAvailableToken;
+	EventRegistrationToken m_downloadRequestedEventToken;
 
 	bool m_bIgnoreEvents;
 
 #ifndef NO_FFMPEG
     Microsoft::WRL::ComPtr<FFmpegInterop::IFFmpegInteropMSS> m_ffmpegInteropMSS;
 #endif
+
+	Microsoft::WRL::ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource> m_spAdaptiveMediaSource;
 
     Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackSession> m_mediaPlaybackSession;
     EventRegistrationToken m_stateChangedEventToken;

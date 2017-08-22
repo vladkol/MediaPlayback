@@ -253,9 +253,15 @@ HRESULT CreateFFmpegMediaSource(
             return hr;
     }
 #endif
+	std::wstring fullUrl = pszUrl;
+	replaceAll(fullUrl, L"file:///", L"");
+	
 
     ComPtr<FFmpegInterop::IFFmpegInteropMSS> interopMSS;
-    IFR(MakeAndInitialize<FFmpegInterop::FFmpegInteropMSS>(&interopMSS, pszUrl, forceAudioDecode, forceVideoDecode, spPropertySet.Get()));
+    IFR(MakeAndInitialize<FFmpegInterop::FFmpegInteropMSS>(&interopMSS, fullUrl.c_str(), forceAudioDecode, forceVideoDecode, spPropertySet.Get()));
+
+	if (interopMSS.Get() == nullptr)
+		return E_UNEXPECTED;
 
     ComPtr<IMediaStreamSource> spMediaStreamSource;
     IFR(interopMSS->get_MediaStreamSource(&spMediaStreamSource));
