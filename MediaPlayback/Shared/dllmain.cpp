@@ -132,6 +132,13 @@ extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API SetVolume(_In_ IMe
 	return spMediaPlayback->SetVolume(volume);
 }
 
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetMediaPlayer(_In_ IMediaPlayerPlayback* spMediaPlayback, _Out_ IUnknown** pIUnkForMediaPlayer)
+{
+	NULL_CHK(spMediaPlayback);
+
+	return spMediaPlayback->GetIUnknown(pIUnkForMediaPlayer);
+}
+
 
 // --------------------------------------------------------------------------
 // UnitySetInterfaces

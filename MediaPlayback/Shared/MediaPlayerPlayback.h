@@ -74,6 +74,7 @@ DECLARE_INTERFACE_IID_(IMediaPlayerPlayback, IUnknown, "9669c78e-42c4-4178-a1e3-
 	STDMETHOD(GetDurationAndPosition)(_Out_ LONGLONG* duration, _Out_ LONGLONG* position) PURE;
 	STDMETHOD(Seek)(_In_ LONGLONG position) PURE;
 	STDMETHOD(SetVolume)(_In_ DOUBLE volume) PURE;
+	STDMETHOD(GetIUnknown)(_Out_ IUnknown** ppUnknown) PURE;
 };
 
 class CMediaPlayerPlayback
@@ -115,6 +116,8 @@ public:
 	IFACEMETHOD(GetDurationAndPosition)(_Out_ LONGLONG* duration, _Out_ LONGLONG* position);
 	IFACEMETHOD(Seek)(_In_ LONGLONG position);
 	IFACEMETHOD(SetVolume)(_In_ DOUBLE volume);
+
+	IFACEMETHOD(GetIUnknown)(_Out_ IUnknown** ppUnknown);
 
 protected:
     // Callbacks - IMediaPlayer2

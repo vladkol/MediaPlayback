@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MediaPlayer", "MediaPlayer"
 	ProjectSection(SolutionItems) = preProject
 		Unity\MediaPlayback\Assets\Addons\MediaPlayer\MediaItemsUI.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\MediaItemsUI.cs
 		Unity\MediaPlayback\Assets\Addons\MediaPlayer\Playback.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\Playback.cs
+		Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayReadyUtils.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayReadyUtils.cs
 		Unity\MediaPlayback\Assets\Addons\MediaPlayer\States.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\States.cs
 	EndProjectSection
 EndProject

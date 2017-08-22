@@ -70,7 +70,11 @@ namespace MediaPlayer
         private bool loaded = false;
         private Plugin.MEDIA_DESCRIPTION currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
 
-        public void Load(string uriOrPath)
+        private string _playReadyLicenseUrl;
+        private string _playReadyChallengeCustomData;
+
+
+        public void Load(string uriOrPath, string licenseUrl, string licenseChallengeCustomData)
         {
             Stop();
 
@@ -89,6 +93,11 @@ namespace MediaPlayer
                 uriStr = "file:///" + System.IO.Path.Combine(Application.streamingAssetsPath, uriOrPath);
             }
 
+            if(!string.IsNullOrEmpty(licenseUrl))
+            {
+                InitializePlayReady(licenseUrl, licenseChallengeCustomData);
+            }
+
             loaded = (0 == CheckHR(Plugin.LoadContent(pluginInstance, UseFFMPEG, SoftwareDecode, uriStr)));
             if(loaded)
             {
@@ -96,18 +105,28 @@ namespace MediaPlayer
             }
         }
 
+        public void Load(string uriOrPath)
+        {
+            Load(uriOrPath, null, null);
+        }
+
         public void Play()
         {
             Play(null); // play or resume already loaded item
         }
 
-        public void Play(string selectedItem)
+        public void Play(string itemToPlay)
         {
-            string item = string.IsNullOrEmpty(selectedItem) ? string.Empty : selectedItem.Trim();
+            Play(itemToPlay, null, null);
+        }
+
+        public void Play(string itemToPlay, string licenseUrl, string licenseChallengeCustomData)
+        {
+            string item = string.IsNullOrEmpty(itemToPlay) ? string.Empty : itemToPlay.Trim();
 
             if (!string.IsNullOrEmpty(item) && currentItem != item)
             {
-                Load(item);
+                Load(item, licenseUrl, licenseChallengeCustomData);
             }
 
             if (loaded)
@@ -181,6 +200,100 @@ namespace MediaPlayer
         {
             CheckHR(Plugin.SetVolume(pluginInstance, volume));
         }
+
+        // only works when exported as a UWP app. Doesn't work in Unity Editor 
+        public void InitializePlayReady(string playReadyLicenseServerUrl, string playReadyChallengeCustomData)
+        {
+            //use https://playready.directtaps.net/svc/live/root/rightsmanager.asmx as license server URL and empty custom data for Microsoft Test DRM-ed Streams
+
+            if (string.IsNullOrEmpty(playReadyLicenseServerUrl))
+                return;
+
+            IntPtr mediaPlayerPtr = IntPtr.Zero;
+
+            Plugin.GetMediaPlayer(pluginInstance, out mediaPlayerPtr);
+            if (mediaPlayerPtr != IntPtr.Zero)
+            {
+                try
+                {
+#if UNITY_WSA_10_0 && ENABLE_WINMD_SUPPORT
+                    Windows.Media.Playback.MediaPlayer mediaPlayer = null;
+                    mediaPlayer = System.Runtime.InteropServices.Marshal.GetObjectForIUnknown(mediaPlayerPtr) as Windows.Media.Playback.MediaPlayer;
+
+                    if(mediaPlayer != null)
+                    {                    
+                        _playReadyLicenseUrl = playReadyLicenseServerUrl;
+                        _playReadyChallengeCustomData = playReadyChallengeCustomData;
+
+                        Windows.Media.Protection.MediaProtectionManager protectionManager = new Windows.Media.Protection.MediaProtectionManager();
+
+                        protectionManager.ComponentLoadFailed +=
+                                new Windows.Media.Protection.ComponentLoadFailedEventHandler(ProtectionManager_ComponentLoadFailed);
+
+                        protectionManager.ServiceRequested +=
+                                new Windows.Media.Protection.ServiceRequestedEventHandler(ProtectionManager_ServiceRequested);
+
+                        Windows.Foundation.Collections.PropertySet cpSystems = new Windows.Foundation.Collections.PropertySet();
+
+                        cpSystems.Add(
+                            "{F4637010-03C3-42CD-B932-B48ADF3A6A54}",
+                            "Windows.Media.Protection.PlayReady.PlayReadyWinRTTrustedInput");
+
+                        protectionManager.Properties.Add("Windows.Media.Protection.MediaProtectionSystemIdMapping", cpSystems);
+
+                        protectionManager.Properties.Add(
+                            "Windows.Media.Protection.MediaProtectionSystemId",
+                            "{F4637010-03C3-42CD-B932-B48ADF3A6A54}");
+
+                        protectionManager.Properties.Add(
+                            "Windows.Media.Protection.MediaProtectionContainerGuid",
+                            "{9A04F079-9840-4286-AB92-E65BE0885F95}");
+
+
+                        mediaPlayer.ProtectionManager = protectionManager;
+                    }
+#endif
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError("License initialization error: " + ex.Message);
+                }
+                finally
+                {
+                    Marshal.Release(mediaPlayerPtr);
+                }
+            }
+        }
+
+#if UNITY_WSA_10_0 && ENABLE_WINMD_SUPPORT
+        private void ProtectionManager_ComponentLoadFailed(Windows.Media.Protection.MediaProtectionManager sender, Windows.Media.Protection.ComponentLoadFailedEventArgs e)
+        {
+            e.Completion.Complete(false);
+        }
+
+
+        private async void ProtectionManager_ServiceRequested(Windows.Media.Protection.MediaProtectionManager sender, Windows.Media.Protection.ServiceRequestedEventArgs e)
+        {
+            if (e.Request is Windows.Media.Protection.PlayReady.PlayReadyIndividualizationServiceRequest)
+            {
+                Windows.Media.Protection.PlayReady.PlayReadyIndividualizationServiceRequest IndivRequest =
+                    e.Request as Windows.Media.Protection.PlayReady.PlayReadyIndividualizationServiceRequest;
+
+                bool bResultIndiv = await PlayReadyUtils.ReactiveIndivRequest(IndivRequest, e.Completion);
+            }
+            else if (e.Request is Windows.Media.Protection.PlayReady.PlayReadyLicenseAcquisitionServiceRequest)
+            {
+                Windows.Media.Protection.PlayReady.PlayReadyLicenseAcquisitionServiceRequest licenseRequest =
+                    e.Request as Windows.Media.Protection.PlayReady.PlayReadyLicenseAcquisitionServiceRequest;
+
+                await PlayReadyUtils.LicenseAcquisitionRequest(
+                    licenseRequest,
+                    e.Completion,
+                    _playReadyLicenseUrl,
+                    _playReadyChallengeCustomData);
+            }
+        }
+#endif
 
         public uint GetVideoWidth()
         {
@@ -424,6 +537,9 @@ namespace MediaPlayer
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetVolume")]
             internal static extern long SetVolume(IntPtr pluginInstance, double volume);
+
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetMediaPlayer")]
+            internal static extern long GetMediaPlayer(IntPtr pluginInstance, out IntPtr ppvUnknown);
 
             // Unity plugin
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetTimeFromUnity")]

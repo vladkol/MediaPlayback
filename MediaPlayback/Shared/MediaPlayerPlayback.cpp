@@ -233,7 +233,7 @@ HRESULT CMediaPlayerPlayback::Play()
         IFR(m_mediaPlayer->Play());
     }
 
-    return S_OK;
+    return E_ILLEGAL_METHOD_CALL;
 }
 
 _Use_decl_annotations_
@@ -246,7 +246,7 @@ HRESULT CMediaPlayerPlayback::Pause()
         IFR(m_mediaPlayer->Pause());
     }
 
-    return S_OK;
+    return E_ILLEGAL_METHOD_CALL;
 }
 
 _Use_decl_annotations_
@@ -305,7 +305,7 @@ HRESULT CMediaPlayerPlayback::GetDurationAndPosition(_Out_ LONGLONG* duration, _
 		return hr;
 	}
 
-	return S_FALSE;
+	return E_ILLEGAL_METHOD_CALL;
 }
 
 _Use_decl_annotations_
@@ -340,7 +340,7 @@ HRESULT CMediaPlayerPlayback::Seek(LONGLONG position)
 		return hr;
 	}
 
-	return S_FALSE;
+	return E_ILLEGAL_METHOD_CALL;
 }
 
 _Use_decl_annotations_
@@ -353,8 +353,30 @@ HRESULT CMediaPlayerPlayback::SetVolume(DOUBLE volume)
 		return m_mediaPlayer->put_Volume(volume);
 	}
 
-	return S_FALSE;
+	return E_ILLEGAL_METHOD_CALL;
 }
+
+
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::GetIUnknown(IUnknown** ppUnknown)
+{
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::GetIUnknown()");
+
+	HRESULT hr = E_ILLEGAL_METHOD_CALL;
+
+	if (nullptr != m_mediaPlayer)
+	{
+		ComPtr<IUnknown> unkPtr;
+		HRESULT hr = m_mediaPlayer.As(&unkPtr);
+		if (SUCCEEDED(hr))
+		{
+			*ppUnknown = unkPtr.Detach();
+		}
+	}
+
+	return hr;
+}
+
 
 
 _Use_decl_annotations_
