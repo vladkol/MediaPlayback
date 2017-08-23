@@ -261,6 +261,13 @@ HRESULT CMediaPlayerPlayback::Stop()
 
 		m_bIgnoreEvents = true;
 
+		if (m_spAdaptiveMediaSource.Get() != nullptr)
+		{
+			LOG_RESULT(m_spAdaptiveMediaSource->remove_DownloadRequested(m_downloadRequestedEventToken));
+			m_spAdaptiveMediaSource.Reset();
+			m_spAdaptiveMediaSource = nullptr;
+		}
+
         IFR(spMediaPlayerSource->put_Source(nullptr));
 
 		m_bIgnoreEvents = false;

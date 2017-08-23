@@ -9,6 +9,14 @@ using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace MediaPlayer
 {
+    public class PlayReadyLicenseData
+    {
+        public string playReadyLicenseUrl;
+        public string playReadyChallengeCustomData;
+    }
+
+    public delegate void ActionRef<T>(object sender, ref T item);
+
     public class CommonLicenseRequest
     {
 #if UNITY_WSA_10_0 && ENABLE_WINMD_SUPPORT

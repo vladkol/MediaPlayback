@@ -22,6 +22,7 @@ namespace MediaPlayer
         // state handling
         public Action<object, ChangedEventArgs<PlaybackState>> PlaybackStateChanged;
         public Action<object, long> PlaybackFailed;
+        public MediaPlayer.ActionRef<MediaPlayer.PlayReadyLicenseData> DRMLicenseRequested;
 
         // texture size
         public uint TextureWidth = 4096;
@@ -29,6 +30,8 @@ namespace MediaPlayer
 
         public bool UseFFMPEG = false;
         public bool SoftwareDecode = false;
+
+        public bool usePlayReadyDRM = false;
 
         public PlaybackState State
         {
@@ -70,11 +73,10 @@ namespace MediaPlayer
         private bool loaded = false;
         private Plugin.MEDIA_DESCRIPTION currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
 
-        private string _playReadyLicenseUrl;
-        private string _playReadyChallengeCustomData;
+        private PlayReadyLicenseData playReadyLicense;
 
 
-        public void Load(string uriOrPath, string licenseUrl, string licenseChallengeCustomData)
+        public void Load(string uriOrPath)
         {
             Stop();
 
@@ -93,9 +95,9 @@ namespace MediaPlayer
                 uriStr = "file:///" + System.IO.Path.Combine(Application.streamingAssetsPath, uriOrPath);
             }
 
-            if(!string.IsNullOrEmpty(licenseUrl))
+            if(usePlayReadyDRM)
             {
-                InitializePlayReady(licenseUrl, licenseChallengeCustomData);
+                InitializePlayReady();
             }
 
             loaded = (0 == CheckHR(Plugin.LoadContent(pluginInstance, UseFFMPEG, SoftwareDecode, uriStr)));
@@ -105,11 +107,6 @@ namespace MediaPlayer
             }
         }
 
-        public void Load(string uriOrPath)
-        {
-            Load(uriOrPath, null, null);
-        }
-
         public void Play()
         {
             Play(null); // play or resume already loaded item
@@ -117,16 +114,11 @@ namespace MediaPlayer
 
         public void Play(string itemToPlay)
         {
-            Play(itemToPlay, null, null);
-        }
-
-        public void Play(string itemToPlay, string licenseUrl, string licenseChallengeCustomData)
-        {
             string item = string.IsNullOrEmpty(itemToPlay) ? string.Empty : itemToPlay.Trim();
 
             if (!string.IsNullOrEmpty(item) && currentItem != item)
             {
-                Load(item, licenseUrl, licenseChallengeCustomData);
+                Load(item);
             }
 
             if (loaded)
@@ -201,14 +193,15 @@ namespace MediaPlayer
             CheckHR(Plugin.SetVolume(pluginInstance, volume));
         }
 
-        // only works when exported as a UWP app. Doesn't work in Unity Editor 
-        public void InitializePlayReady(string playReadyLicenseServerUrl, string playReadyChallengeCustomData)
+
+        public void SetPlayReadyDRMLicense(PlayReadyLicenseData licenseData)
         {
-            //use https://playready.directtaps.net/svc/live/root/rightsmanager.asmx as license server URL and empty custom data for Microsoft Test DRM-ed Streams
+            this.playReadyLicense = licenseData;
+        }
 
-            if (string.IsNullOrEmpty(playReadyLicenseServerUrl))
-                return;
-
+        // only works when exported as a UWP app. Doesn't work in Unity Editor 
+        private void InitializePlayReady()
+        {
             IntPtr mediaPlayerPtr = IntPtr.Zero;
 
             Plugin.GetMediaPlayer(pluginInstance, out mediaPlayerPtr);
@@ -222,9 +215,6 @@ namespace MediaPlayer
 
                     if(mediaPlayer != null)
                     {                    
-                        _playReadyLicenseUrl = playReadyLicenseServerUrl;
-                        _playReadyChallengeCustomData = playReadyChallengeCustomData;
-
                         Windows.Media.Protection.MediaProtectionManager protectionManager = new Windows.Media.Protection.MediaProtectionManager();
 
                         protectionManager.ComponentLoadFailed +=
@@ -286,11 +276,26 @@ namespace MediaPlayer
                 Windows.Media.Protection.PlayReady.PlayReadyLicenseAcquisitionServiceRequest licenseRequest =
                     e.Request as Windows.Media.Protection.PlayReady.PlayReadyLicenseAcquisitionServiceRequest;
 
-                await PlayReadyUtils.LicenseAcquisitionRequest(
-                    licenseRequest,
-                    e.Completion,
-                    _playReadyLicenseUrl,
-                    _playReadyChallengeCustomData);
+                if(playReadyLicense == null)
+                    playReadyLicense = new PlayReadyLicenseData();
+
+                if(DRMLicenseRequested != null)
+                {
+                    DRMLicenseRequested(this, ref playReadyLicense);
+                }
+
+                if(string.IsNullOrEmpty(playReadyLicense.playReadyLicenseUrl))
+                {
+                    e.Completion.Complete(false);
+                }
+                else
+                {
+                    await PlayReadyUtils.LicenseAcquisitionRequest(
+                        licenseRequest,
+                        e.Completion,
+                        playReadyLicense.playReadyLicenseUrl,
+                        playReadyLicense.playReadyChallengeCustomData);
+                }
             }
         }
 #endif
