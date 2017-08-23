@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PlayReadyLicenseHandler : MonoBehaviour
 {
-    //use https://playready.directtaps.net/svc/live/root/rightsmanager.asmx as license server URL and empty custom data for Microsoft Test DRM-ed Streams
+    //use http://test.playready.microsoft.com/service/rightsmanager.asmx?PlayRight=1&UseSimpleNonPersistentLicense=1 as license server URL and empty custom data for Microsoft Test DRM-ed Streams
     public string playReadyLicenseServiceUri;
     public string playReadyCustomChallendgeData;
     public MediaPlayer.Playback mediaPlayer;
