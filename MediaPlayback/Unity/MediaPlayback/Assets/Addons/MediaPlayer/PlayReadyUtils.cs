@@ -154,7 +154,11 @@ namespace MediaPlayer
                         }
                         else
                         {
-                            httpContent.Headers.Add(strHeaderName.ToString(), strHeaderValue);
+                            try
+                            {
+                                httpContent.Headers.TryAppendWithoutValidation(strHeaderName.ToString(), strHeaderValue);
+                            }
+                            catch { }                        
                         }
                     }
 
