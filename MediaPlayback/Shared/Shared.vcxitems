@@ -32,6 +32,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)dllmain.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\FFmpegInteropMSS.h" />
@@ -45,6 +46,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaHelpers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)pch.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)targetver.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Unity\IUnityGraphics.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Unity\IUnityGraphicsD3D11.h" />

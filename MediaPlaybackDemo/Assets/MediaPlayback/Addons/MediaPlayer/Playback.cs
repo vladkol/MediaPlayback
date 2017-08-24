@@ -239,6 +239,11 @@ namespace MediaPlayer
                             "Windows.Media.Protection.MediaProtectionContainerGuid",
                             "{9A04F079-9840-4286-AB92-E65BE0885F95}");
 
+                        Windows.Foundation.Collections.PropertySet pmpServerProperties = new Windows.Foundation.Collections.PropertySet();
+                        pmpServerProperties.Add("Windows.Media.Protection.MediaProtectionSystemId", "{F4637010-03C3-42CD-B932-B48ADF3A6A54}");
+
+                        Windows.Media.Protection.MediaProtectionPMPServer pmpServer = new Windows.Media.Protection.MediaProtectionPMPServer(pmpServerProperties);
+                        protectionManager.Properties.Add("Windows.Media.Protection.MediaProtectionPMPServer", pmpServer);
 
                         mediaPlayer.ProtectionManager = protectionManager;
                     }
@@ -290,11 +295,19 @@ namespace MediaPlayer
                 }
                 else
                 {
-                    await PlayReadyUtils.LicenseAcquisitionRequest(
-                        licenseRequest,
-                        e.Completion,
-                        playReadyLicense.playReadyLicenseUrl,
-                        playReadyLicense.playReadyChallengeCustomData);
+                    licenseRequest.Uri = new Uri(playReadyLicense.playReadyLicenseUrl);
+
+                    if(!string.IsNullOrEmpty(playReadyLicense.playReadyChallengeCustomData))
+                    {
+                        licenseRequest.ChallengeCustomData = playReadyLicense.playReadyChallengeCustomData;
+                    }
+
+                    var action = licenseRequest.BeginServiceRequest();
+                    await action;
+                    if(e.Completion != null)
+                    {
+                        e.Completion.Complete(action.ErrorCode == null || action.ErrorCode.HResult >= 0);
+                    }
                 }
             }
         }
@@ -438,6 +451,49 @@ namespace MediaPlayer
             }
         }
 
+
+        [AOT.MonoPInvokeCallback(typeof(Plugin.DRMLicenseRequestedCallback))]
+        private static void MediaPlayback_DRMLicenseRequested(IntPtr thisObjectPtr)
+        {
+            if (thisObjectPtr == IntPtr.Zero)
+            {
+                Debug.LogError("MediaPlayback_DRMLicenseRequested: requires thisObjectPtr.");
+                return;
+            }
+
+            var handle = GCHandle.FromIntPtr(thisObjectPtr);
+            Playback thisObject = handle.Target as Playback;
+            if (thisObject == null)
+            {
+                Debug.LogError("MediaPlayback_DRMLicenseRequested: thisObjectPtr is not null, but seems invalid.");
+                return;
+            }
+
+#if UNITY_WSA_10_0
+            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            {
+                thisObject.OnDRMLicenseRequested();
+            }, false);
+#else
+            thisObject.OnDRMLicenseRequested();
+#endif
+        }
+
+
+        private void OnDRMLicenseRequested()
+        {
+            if (playReadyLicense == null)
+                playReadyLicense = new PlayReadyLicenseData();
+
+            if (DRMLicenseRequested != null)
+            {
+                DRMLicenseRequested(this, ref playReadyLicense);
+            }
+
+            Plugin.SetDRMLicense(pluginInstance, playReadyLicense.playReadyLicenseUrl, playReadyLicense.playReadyChallengeCustomData);
+        }
+
+
         private IEnumerator CallPluginAtEndOfFrames()
         {
             while (true)
@@ -512,6 +568,7 @@ namespace MediaPlayer
             };
 
             public delegate void StateChangedCallback(IntPtr thisObjectPtr, PLAYBACK_STATE args);
+            public delegate void DRMLicenseRequestedCallback(IntPtr thisObjectPtr);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "CreateMediaPlayback")]
             internal static extern long CreateMediaPlayback(StateChangedCallback callback, IntPtr playbackObject, out IntPtr pluginInstance);
@@ -545,6 +602,12 @@ namespace MediaPlayer
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetMediaPlayer")]
             internal static extern long GetMediaPlayer(IntPtr pluginInstance, out IntPtr ppvUnknown);
+
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetDRMLicense")]
+            internal static extern long SetDRMLicense(IntPtr pluginInstance, [MarshalAs(UnmanagedType.BStr)] string licenseServiceURL, [MarshalAs(UnmanagedType.BStr)] string licenseCustomChallendgeData);
+
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetDRMLicenseCallback")]
+            internal static extern long SetDRMLicenseCallback(IntPtr pluginInstance, DRMLicenseRequestedCallback callback);
 
             // Unity plugin
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetTimeFromUnity")]

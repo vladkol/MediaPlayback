@@ -58,6 +58,10 @@ extern "C" typedef void(UNITY_INTERFACE_API *StateChangedCallback)(
 	_In_ void* pClientObject,
     _In_ PLAYBACK_STATE args);
 
+extern "C" typedef void(UNITY_INTERFACE_API *DRMLicenseRequestedCallback)(
+	_In_ void* pClientObject);
+
+
 typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playback::MediaPlayer*, IInspectable*> IMediaPlayerEventHandler;
 typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playback::MediaPlayer*, ABI::Windows::Media::Playback::MediaPlayerFailedEventArgs*> IFailedEventHandler;
 typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playback::MediaPlaybackSession*, IInspectable*> IMediaPlaybackSessionEventHandler;
@@ -75,6 +79,8 @@ DECLARE_INTERFACE_IID_(IMediaPlayerPlayback, IUnknown, "9669c78e-42c4-4178-a1e3-
 	STDMETHOD(Seek)(_In_ LONGLONG position) PURE;
 	STDMETHOD(SetVolume)(_In_ DOUBLE volume) PURE;
 	STDMETHOD(GetIUnknown)(_Out_ IUnknown** ppUnknown) PURE;
+	STDMETHOD(SetDRMLicense)(_In_ LPCWSTR pszlicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData) PURE;
+	STDMETHOD(SetDRMLicenseCallback)(_In_ DRMLicenseRequestedCallback fnCallback) PURE;
 };
 
 class CMediaPlayerPlayback
@@ -118,6 +124,8 @@ public:
 	IFACEMETHOD(SetVolume)(_In_ DOUBLE volume);
 
 	IFACEMETHOD(GetIUnknown)(_Out_ IUnknown** ppUnknown);
+	IFACEMETHOD(SetDRMLicense)(_In_ LPCWSTR pszlicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData);
+	IFACEMETHOD(SetDRMLicenseCallback)(_In_ DRMLicenseRequestedCallback fnCallback);
 
 protected:
     // Callbacks - IMediaPlayer2
@@ -149,6 +157,8 @@ private:
     HRESULT CreateMediaPlayer();
     void ReleaseMediaPlayer();
 
+	HRESULT InitializePlayReadyDRM();
+
     HRESULT CreateTextures();
     void ReleaseTextures();
 
@@ -162,6 +172,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Device> m_mediaDevice;
 
     StateChangedCallback m_fnStateCallback;
+	DRMLicenseRequestedCallback m_fnLicenseCallback;
 	void* m_pClientObject;
 
     Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlayer> m_mediaPlayer;

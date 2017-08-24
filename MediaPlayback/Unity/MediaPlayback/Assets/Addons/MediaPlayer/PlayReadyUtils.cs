@@ -13,63 +13,15 @@ namespace MediaPlayer
     {
         public string playReadyLicenseUrl;
         public string playReadyChallengeCustomData;
+
+        public PlayReadyLicenseData()
+        {
+            playReadyLicenseUrl = string.Empty;
+            playReadyChallengeCustomData = null;
+        }
     }
 
     public delegate void ActionRef<T>(object sender, ref T item);
-
-    public class CommonLicenseRequest
-    {
-#if UNITY_WSA_10_0 && ENABLE_WINMD_SUPPORT
-        private string lastErrorMessage;
-        private Windows.Web.Http.HttpClient httpClient;
-        
-        public string GetLastErrorMessage()
-        {
-            return lastErrorMessage;
-        }
-
-        public CommonLicenseRequest(Windows.Web.Http.HttpClient client = null)
-        {
-            if (client == null)
-                httpClient = new Windows.Web.Http.HttpClient();
-            else
-                httpClient = client;
-            lastErrorMessage = string.Empty;
-        }
-        /// <summary>
-        /// Invoked to acquire the PlayReady license.
-        /// </summary>
-        /// <param name="licenseServerUri">License Server URI to retrieve the PlayReady license.</param>
-        /// <param name="httpRequestContent">HttpContent including the Challenge transmitted to the PlayReady server.</param>
-        public async virtual System.Threading.Tasks.Task<Windows.Web.Http.IHttpContent> AcquireLicenseAsync(Uri licenseServerUri, Windows.Web.Http.IHttpContent httpRequestContent)
-        {
-            try
-            {
-                httpClient.DefaultRequestHeaders.Add("msprdrm_server_redirect_compat", "false");
-                httpClient.DefaultRequestHeaders.Add("msprdrm_server_exception_compat", "false");
-
-                Windows.Web.Http.HttpResponseMessage response = await httpClient.PostAsync(licenseServerUri, httpRequestContent);
-                response.EnsureSuccessStatusCode();
-
-                if (response.StatusCode == Windows.Web.Http.HttpStatusCode.Ok)
-                {
-                    lastErrorMessage = string.Empty;
-                    return response.Content;
-                }
-                else
-                {
-                    lastErrorMessage = "AcquireLicense - Http Response Status Code: " + response.StatusCode.ToString();
-                }
-            }
-            catch (Exception exception)
-            {
-                lastErrorMessage = exception.Message;
-                return null;
-            }
-            return null;
-        }
-#endif
-    }
 
 
     public static class PlayReadyUtils
@@ -118,84 +70,6 @@ namespace MediaPlayer
             bool bResultIndiv = await ReactiveIndivRequest(indivRequest, null);
         }
 
-
-        public static async System.Threading.Tasks.Task LicenseAcquisitionRequest(Windows.Media.Protection.PlayReady.PlayReadyLicenseAcquisitionServiceRequest licenseRequest, Windows.Media.Protection.MediaProtectionServiceCompletion CompletionNotifier,
-                                            string Url,
-                                            string ChallengeCustomData)
-        {
-            bool bResult = false;
-            string ExceptionMessage = string.Empty;
-
-            try
-            {
-                if (!string.IsNullOrEmpty(Url))
-                {
-                    if (!string.IsNullOrEmpty(ChallengeCustomData))
-                    {
-                        System.Text.UTF8Encoding encoding = new System.Text.UTF8Encoding();
-                        byte[] b = encoding.GetBytes(ChallengeCustomData);
-                        licenseRequest.ChallengeCustomData = Convert.ToBase64String(b, 0, b.Length);
-                    }
-
-                    Windows.Media.Protection.PlayReady.PlayReadySoapMessage soapMessage = licenseRequest.GenerateManualEnablingChallenge();
-
-                    byte[] messageBytes = soapMessage.GetMessageBody();
-                    Windows.Web.Http.HttpBufferContent httpContent = new Windows.Web.Http.HttpBufferContent(messageBytes.AsBuffer());
-
-                    Windows.Foundation.Collections.IPropertySet propertySetHeaders = soapMessage.MessageHeaders;
-
-                    foreach (string strHeaderName in propertySetHeaders.Keys)
-                    {
-                        string strHeaderValue = propertySetHeaders[strHeaderName].ToString();
-
-                        if (strHeaderName.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
-                        {
-                            httpContent.Headers.ContentType = Windows.Web.Http.Headers.HttpMediaTypeHeaderValue.Parse(strHeaderValue);
-                        }
-                        else
-                        {
-                            try
-                            {
-                                httpContent.Headers.TryAppendWithoutValidation(strHeaderName.ToString(), strHeaderValue);
-                            }
-                            catch { }                        
-                        }
-                    }
-
-                    CommonLicenseRequest licenseAcquision = new CommonLicenseRequest();
-
-                    Windows.Web.Http.IHttpContent responseHttpContent =
-                        await licenseAcquision.AcquireLicenseAsync(new Uri(Url), httpContent);
-
-                    if (responseHttpContent != null)
-                    {
-                        Exception exResult = licenseRequest.ProcessManualEnablingResponse(
-                                                 (await responseHttpContent.ReadAsBufferAsync()).ToArray());
-
-                        if (exResult != null)
-                        {
-                            throw exResult;
-                        }
-                        bResult = true;
-                    }
-                    else
-                    {
-                        ExceptionMessage = licenseAcquision.GetLastErrorMessage();
-                    }
-                }
-                else
-                {
-                    await licenseRequest.BeginServiceRequest();
-                    bResult = true;
-                }
-            }
-            catch (Exception e)
-            {
-                ExceptionMessage = e.Message;
-            }
-
-            CompletionNotifier.Complete(bResult);
-        }
 #endif
     }
 }

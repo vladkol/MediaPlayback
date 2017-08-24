@@ -7,6 +7,9 @@
     <Filter Include="FFmpegInterop">
       <UniqueIdentifier>{0cc04060-db0d-4357-a813-01c9489d059e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PlayReady">
+      <UniqueIdentifier>{1c975ed4-e494-4020-82c7-80d2f17b2b63}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)pch.h" />
@@ -58,6 +61,7 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaHelpers.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)pch.cpp" />
@@ -88,5 +92,6 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaHelpers.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.cpp" />
   </ItemGroup>
 </Project>

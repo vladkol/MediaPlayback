@@ -64,6 +64,7 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
     : m_d3dDevice(nullptr)
     , m_mediaDevice(nullptr)
     , m_fnStateCallback(nullptr)
+	, m_fnLicenseCallback(nullptr)
 	, m_pClientObject(nullptr)
     , m_mediaPlayer(nullptr)
     , m_mediaPlaybackSession(nullptr)
@@ -126,12 +127,15 @@ HRESULT CMediaPlayerPlayback::RuntimeClassInitialize(
     // associtate the device with the manager
     IFR(spDeviceManager->ResetDevice(spMediaDevice.Get(), uiResetToken));
 
-    // create media plyaer object
+    // create media player object
     IFR(CreateMediaPlayer());
 
     m_fnStateCallback = fnCallback;
     m_d3dDevice.Attach(spDevice.Detach());
     m_mediaDevice.Attach(spMediaDevice.Detach());
+
+	//Initialize PlayReady DRM
+	InitializePlayReadyDRM();
 
     return S_OK;
 }
@@ -385,6 +389,31 @@ HRESULT CMediaPlayerPlayback::GetIUnknown(IUnknown** ppUnknown)
 }
 
 
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::SetDRMLicense(_In_ LPCWSTR pszlicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData)
+{
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::SetDRMLicense()");
+
+	Log(Log_Level_Info, L"Switching DRM License to %S (%S)",
+		pszlicenseServiceURL != nullptr ? pszlicenseServiceURL : L"<nullptr>",
+		pszCustomChallendgeData != nullptr ? L"has custom challendge data" : L"(no custom  challendge data)");
+
+	return S_OK;
+}
+
+
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::SetDRMLicenseCallback(_In_ DRMLicenseRequestedCallback fnCallback)
+{
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::SetDRMLicenseCallback()");
+
+	m_fnLicenseCallback = fnCallback;
+
+	return S_OK;
+}
+
+
+
 
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::CreateMediaPlayer()
@@ -563,6 +592,17 @@ void CMediaPlayerPlayback::ReleaseTextures()
 }
 
 _Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::InitializePlayReadyDRM()
+{
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::InitializePlayReadyDRM()");
+
+	HRESULT hr = S_OK;
+
+	return hr;
+}
+
+
+_Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::AddStateChanged()
 {
     ComPtr<IMediaPlayer3> spMediaPlayer3;
@@ -597,6 +637,7 @@ _Use_decl_annotations_
 void CMediaPlayerPlayback::ReleaseResources()
 {
     m_fnStateCallback = nullptr;
+	m_fnLicenseCallback = nullptr;
 
     // release dx devices
     m_mediaDevice.Reset();

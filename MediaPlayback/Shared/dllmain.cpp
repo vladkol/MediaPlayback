@@ -140,6 +140,22 @@ extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetMediaPlayer(_In
 }
 
 
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API SetDRMLicense(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ LPCWSTR pszLicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData)
+{
+	NULL_CHK(spMediaPlayback);
+
+	return spMediaPlayback->SetDRMLicense(pszLicenseServiceURL, pszCustomChallendgeData);
+}
+
+
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API SetDRMLicenseCallback(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ DRMLicenseRequestedCallback fnCallback)
+{
+	NULL_CHK(spMediaPlayback);
+
+	return spMediaPlayback->SetDRMLicenseCallback(fnCallback);
+}
+
+
 // --------------------------------------------------------------------------
 // UnitySetInterfaces
 
