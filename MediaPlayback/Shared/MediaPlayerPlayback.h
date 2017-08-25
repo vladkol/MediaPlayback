@@ -14,6 +14,8 @@
 	#include "FFMpegInterop\FFmpegInteropMSS.h"
 #endif 
 
+#include "PlayReady\PlayReadyHandler.h"
+
 enum class StateType : UINT16
 {
     StateType_None = 0,
@@ -60,7 +62,6 @@ extern "C" typedef void(UNITY_INTERFACE_API *StateChangedCallback)(
 
 extern "C" typedef void(UNITY_INTERFACE_API *DRMLicenseRequestedCallback)(
 	_In_ void* pClientObject);
-
 
 typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playback::MediaPlayer*, IInspectable*> IMediaPlayerEventHandler;
 typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playback::MediaPlayer*, ABI::Windows::Media::Playback::MediaPlayerFailedEventArgs*> IFailedEventHandler;
@@ -153,6 +154,8 @@ protected:
 		_In_ ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource* sender,
 		_In_ ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSourceDownloadRequestedEventArgs* args);
 
+	static void LicenseRequestInternal(void* objectThisPtr, Microsoft::WRL::Wrappers::HString& licenseUriResult, Microsoft::WRL::Wrappers::HString& licenseCustomChallendgeDataResult);
+
 private:
     HRESULT CreateMediaPlayer();
     void ReleaseMediaPlayer();
@@ -183,6 +186,9 @@ private:
 	EventRegistrationToken m_downloadRequestedEventToken;
 
 	bool m_bIgnoreEvents;
+	PlayReadyHandler m_playreadyHandler;
+	Microsoft::WRL::Wrappers::HString m_currentLicenseServiceURL;
+	Microsoft::WRL::Wrappers::HString m_currentLicenseCustomChallendge;
 
 #ifndef NO_FFMPEG
     Microsoft::WRL::ComPtr<FFmpegInterop::IFFmpegInteropMSS> m_ffmpegInteropMSS;

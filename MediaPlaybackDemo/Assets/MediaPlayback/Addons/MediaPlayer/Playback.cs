@@ -202,116 +202,8 @@ namespace MediaPlayer
         // only works when exported as a UWP app. Doesn't work in Unity Editor 
         private void InitializePlayReady()
         {
-            IntPtr mediaPlayerPtr = IntPtr.Zero;
-
-            Plugin.GetMediaPlayer(pluginInstance, out mediaPlayerPtr);
-            if (mediaPlayerPtr != IntPtr.Zero)
-            {
-                try
-                {
-#if UNITY_WSA_10_0 && ENABLE_WINMD_SUPPORT
-                    Windows.Media.Playback.MediaPlayer mediaPlayer = null;
-                    mediaPlayer = System.Runtime.InteropServices.Marshal.GetObjectForIUnknown(mediaPlayerPtr) as Windows.Media.Playback.MediaPlayer;
-
-                    if(mediaPlayer != null)
-                    {                    
-                        Windows.Media.Protection.MediaProtectionManager protectionManager = new Windows.Media.Protection.MediaProtectionManager();
-
-                        protectionManager.ComponentLoadFailed +=
-                                new Windows.Media.Protection.ComponentLoadFailedEventHandler(ProtectionManager_ComponentLoadFailed);
-
-                        protectionManager.ServiceRequested +=
-                                new Windows.Media.Protection.ServiceRequestedEventHandler(ProtectionManager_ServiceRequested);
-
-                        Windows.Foundation.Collections.PropertySet cpSystems = new Windows.Foundation.Collections.PropertySet();
-
-                        cpSystems.Add(
-                            "{F4637010-03C3-42CD-B932-B48ADF3A6A54}",
-                            "Windows.Media.Protection.PlayReady.PlayReadyWinRTTrustedInput");
-
-                        protectionManager.Properties.Add("Windows.Media.Protection.MediaProtectionSystemIdMapping", cpSystems);
-
-                        protectionManager.Properties.Add(
-                            "Windows.Media.Protection.MediaProtectionSystemId",
-                            "{F4637010-03C3-42CD-B932-B48ADF3A6A54}");
-
-                        protectionManager.Properties.Add(
-                            "Windows.Media.Protection.MediaProtectionContainerGuid",
-                            "{9A04F079-9840-4286-AB92-E65BE0885F95}");
-
-                        Windows.Foundation.Collections.PropertySet pmpServerProperties = new Windows.Foundation.Collections.PropertySet();
-                        pmpServerProperties.Add("Windows.Media.Protection.MediaProtectionSystemId", "{F4637010-03C3-42CD-B932-B48ADF3A6A54}");
-
-                        Windows.Media.Protection.MediaProtectionPMPServer pmpServer = new Windows.Media.Protection.MediaProtectionPMPServer(pmpServerProperties);
-                        protectionManager.Properties.Add("Windows.Media.Protection.MediaProtectionPMPServer", pmpServer);
-
-                        mediaPlayer.ProtectionManager = protectionManager;
-                    }
-#endif
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError("License initialization error: " + ex.Message);
-                }
-                finally
-                {
-                    Marshal.Release(mediaPlayerPtr);
-                }
-            }
+            Plugin.SetDRMLicenseCallback(pluginInstance, MediaPlayback_DRMLicenseRequested);
         }
-
-#if UNITY_WSA_10_0 && ENABLE_WINMD_SUPPORT
-        private void ProtectionManager_ComponentLoadFailed(Windows.Media.Protection.MediaProtectionManager sender, Windows.Media.Protection.ComponentLoadFailedEventArgs e)
-        {
-            e.Completion.Complete(false);
-        }
-
-
-        private async void ProtectionManager_ServiceRequested(Windows.Media.Protection.MediaProtectionManager sender, Windows.Media.Protection.ServiceRequestedEventArgs e)
-        {
-            if (e.Request is Windows.Media.Protection.PlayReady.PlayReadyIndividualizationServiceRequest)
-            {
-                Windows.Media.Protection.PlayReady.PlayReadyIndividualizationServiceRequest IndivRequest =
-                    e.Request as Windows.Media.Protection.PlayReady.PlayReadyIndividualizationServiceRequest;
-
-                bool bResultIndiv = await PlayReadyUtils.ReactiveIndivRequest(IndivRequest, e.Completion);
-            }
-            else if (e.Request is Windows.Media.Protection.PlayReady.PlayReadyLicenseAcquisitionServiceRequest)
-            {
-                Windows.Media.Protection.PlayReady.PlayReadyLicenseAcquisitionServiceRequest licenseRequest =
-                    e.Request as Windows.Media.Protection.PlayReady.PlayReadyLicenseAcquisitionServiceRequest;
-
-                if(playReadyLicense == null)
-                    playReadyLicense = new PlayReadyLicenseData();
-
-                if(DRMLicenseRequested != null)
-                {
-                    DRMLicenseRequested(this, ref playReadyLicense);
-                }
-
-                if(string.IsNullOrEmpty(playReadyLicense.playReadyLicenseUrl))
-                {
-                    e.Completion.Complete(false);
-                }
-                else
-                {
-                    licenseRequest.Uri = new Uri(playReadyLicense.playReadyLicenseUrl);
-
-                    if(!string.IsNullOrEmpty(playReadyLicense.playReadyChallengeCustomData))
-                    {
-                        licenseRequest.ChallengeCustomData = playReadyLicense.playReadyChallengeCustomData;
-                    }
-
-                    var action = licenseRequest.BeginServiceRequest();
-                    await action;
-                    if(e.Completion != null)
-                    {
-                        e.Completion.Complete(action.ErrorCode == null || action.ErrorCode.HResult >= 0);
-                    }
-                }
-            }
-        }
-#endif
 
         public uint GetVideoWidth()
         {
@@ -473,7 +365,7 @@ namespace MediaPlayer
             UnityEngine.WSA.Application.InvokeOnAppThread(() =>
             {
                 thisObject.OnDRMLicenseRequested();
-            }, false);
+            }, true);
 #else
             thisObject.OnDRMLicenseRequested();
 #endif

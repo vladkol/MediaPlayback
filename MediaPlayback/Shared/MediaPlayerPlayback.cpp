@@ -74,6 +74,7 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
     , m_primaryMediaTexture(nullptr)
     , m_primaryMediaSurface(nullptr)
 	, m_bIgnoreEvents(false)
+	, m_playreadyHandler(this, CMediaPlayerPlayback::LicenseRequestInternal)
 {
 }
 
@@ -133,9 +134,6 @@ HRESULT CMediaPlayerPlayback::RuntimeClassInitialize(
     m_fnStateCallback = fnCallback;
     m_d3dDevice.Attach(spDevice.Detach());
     m_mediaDevice.Attach(spMediaDevice.Detach());
-
-	//Initialize PlayReady DRM
-	InitializePlayReadyDRM();
 
     return S_OK;
 }
@@ -210,6 +208,9 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 			OutputDebugStringW(L" added.\n");
 		}
 	}
+
+	//Initialize PlayReady DRM
+	InitializePlayReadyDRM();
 
     ComPtr<IMediaPlaybackItem> spPlaybackItem;
     IFR(CreateMediaPlaybackItem(spMediaSource2.Get(), &spPlaybackItem));
@@ -397,6 +398,17 @@ HRESULT CMediaPlayerPlayback::SetDRMLicense(_In_ LPCWSTR pszlicenseServiceURL, _
 	Log(Log_Level_Info, L"Switching DRM License to %S (%S)",
 		pszlicenseServiceURL != nullptr ? pszlicenseServiceURL : L"<nullptr>",
 		pszCustomChallendgeData != nullptr ? L"has custom challendge data" : L"(no custom  challendge data)");
+
+	if(m_currentLicenseServiceURL != nullptr)
+		m_currentLicenseServiceURL.Release();
+	if (m_currentLicenseCustomChallendge != nullptr)
+		m_currentLicenseCustomChallendge.Release();
+
+	if(pszlicenseServiceURL != nullptr)
+		m_currentLicenseServiceURL.Set(pszlicenseServiceURL);
+	
+	if (pszCustomChallendgeData != nullptr)
+		m_currentLicenseCustomChallendge.Set(pszCustomChallendgeData);
 
 	return S_OK;
 }
@@ -598,7 +610,21 @@ HRESULT CMediaPlayerPlayback::InitializePlayReadyDRM()
 
 	HRESULT hr = S_OK;
 
-	return hr;
+	auto pm = m_playreadyHandler.GetProtectionManager();
+	if (pm.Get() == nullptr)
+	{
+		Log(Log_Level_Error, L"Cannot initialize protection manager.");
+		return E_FAIL;
+	}
+	else
+	{
+		ComPtr<IMediaPlayerSource> spMediaPlayerSource;
+		IFR(m_mediaPlayer.As(&spMediaPlayerSource));
+
+		IFR(spMediaPlayerSource->put_ProtectionManager(pm.Get()));
+	}
+
+	return S_OK;
 }
 
 
@@ -823,3 +849,19 @@ HRESULT CMediaPlayerPlayback::OnDownloadRequested(ABI::Windows::Media::Streaming
 	return S_OK;
 }
 
+
+void CMediaPlayerPlayback::LicenseRequestInternal(void* objectThisPtr, Microsoft::WRL::Wrappers::HString& licenseUriResult, Microsoft::WRL::Wrappers::HString& licenseCustomChallendgeData)
+{
+	CMediaPlayerPlayback* objectThis = reinterpret_cast<CMediaPlayerPlayback*>(objectThisPtr);
+	if (objectThis->m_fnLicenseCallback != nullptr)
+	{
+		objectThis->m_fnLicenseCallback(objectThis->m_pClientObject);
+
+		licenseUriResult.Set(objectThis->m_currentLicenseServiceURL.Get());
+		licenseCustomChallendgeData.Set(objectThis->m_currentLicenseCustomChallendge.Get());
+	}
+	else
+	{
+		Log(Log_Level_Warning, L"DRM license needed, but no licensing callback to call.");
+	}
+}
