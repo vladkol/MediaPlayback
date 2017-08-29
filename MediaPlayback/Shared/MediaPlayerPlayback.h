@@ -160,7 +160,7 @@ private:
     HRESULT CreateMediaPlayer();
     void ReleaseMediaPlayer();
 
-	HRESULT InitializePlayReadyDRM();
+	HRESULT InitializeMediaPlayerWithPlayReadyDRM();
 
     HRESULT CreateTextures();
     void ReleaseTextures();

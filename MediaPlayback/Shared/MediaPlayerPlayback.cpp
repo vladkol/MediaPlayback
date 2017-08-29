@@ -155,7 +155,10 @@ HRESULT CMediaPlayerPlayback::CreatePlaybackTexture(
     m_textureDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, width, height);
     m_textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
     m_textureDesc.MipLevels = 1;
-    m_textureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
+	m_textureDesc.ArraySize = 1;
+	m_textureDesc.SampleDesc = { 1, 0 };
+	m_textureDesc.CPUAccessFlags = 0;
+	m_textureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED; // /* commented out while investigating SHARED_NTHANDLE issue */ | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
     m_textureDesc.Usage = D3D11_USAGE_DEFAULT;
 
     IFR(CreateTextures());
@@ -209,14 +212,14 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 		}
 	}
 
-	//Initialize PlayReady DRM
-	InitializePlayReadyDRM();
-
     ComPtr<IMediaPlaybackItem> spPlaybackItem;
     IFR(CreateMediaPlaybackItem(spMediaSource2.Get(), &spPlaybackItem));
 
     ComPtr<IMediaPlaybackSource> spMediaPlaybackSource;
     IFR(spPlaybackItem.As(&spMediaPlaybackSource));
+
+	// Set ProtectionManager for MediaPlayer 
+	IFR(InitializeMediaPlayerWithPlayReadyDRM());
 
     ComPtr<IMediaPlayerSource2> spMediaPlayerSource;
     IFR(m_mediaPlayer.As(&spMediaPlayerSource));
@@ -432,6 +435,8 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayer()
 {
     Log(Log_Level_Info, L"CMediaPlayerPlayback::CreateMediaPlayer()");
 
+	m_playreadyHandler.InitalizeProtectionManager();
+
     // create media player
     ComPtr<IMediaPlayer> spMediaPlayer;
     IFR(ActivateInstance(
@@ -531,25 +536,35 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
     IFR(spTexture.As(&spDXGIResource));
 
     HANDLE sharedHandle = INVALID_HANDLE_VALUE;
+	HRESULT hr = S_OK;
     ComPtr<ID3D11Texture2D> spMediaTexture;
     ComPtr<IDirect3DSurface> spMediaSurface;
 
-	__int64 ptr = (__int64)(void*)spDXGIResource.Get();
+	// commented out while investigating SHARED_NTHANDLE issue
+	/*__int64 ptr = (__int64)(void*)spDXGIResource.Get();
 	WCHAR nameBuffer[MAX_PATH];
 	swprintf_s(nameBuffer, MAX_PATH, L"SharedTextureHandle%I64d", ptr);
 
-    HRESULT hr = spDXGIResource->CreateSharedHandle(
+	
+	hr = spDXGIResource->CreateSharedHandle(
         nullptr,
         DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE,
 		nameBuffer,
-        &sharedHandle);
+        &sharedHandle);*/
+
+	// added while investigating SHARED_NTHANDLE issue
+	hr = spDXGIResource->GetSharedHandle(&sharedHandle);
+
     if (SUCCEEDED(hr))
     {
         ComPtr<ID3D11Device1> spMediaDevice;
         hr = m_mediaDevice.As(&spMediaDevice);
         if (SUCCEEDED(hr))
         {
-            hr = spMediaDevice->OpenSharedResource1(sharedHandle, IID_PPV_ARGS(&spMediaTexture));
+			// OpenSharedResource1 changed to OpenSharedResource while  investigating SHARED_NTHANDLE issue
+            //hr = spMediaDevice->OpenSharedResource1(sharedHandle, IID_PPV_ARGS(&spMediaTexture));
+			hr = spMediaDevice->OpenSharedResource(sharedHandle, IID_PPV_ARGS(&spMediaTexture));
+
             if (SUCCEEDED(hr))
             {
                 hr = GetSurfaceFromTexture(spMediaTexture.Get(), &spMediaSurface);
@@ -560,8 +575,9 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
     // if anything failed, clean up and return
     if (FAILED(hr))
     {
-        if (sharedHandle != INVALID_HANDLE_VALUE)
-            CloseHandle(sharedHandle);
+		// commented yout while investigating SHARED_NTHANDLE issue
+        //if (sharedHandle != INVALID_HANDLE_VALUE)
+        //    CloseHandle(sharedHandle);
 
         IFR(hr);
     }
@@ -584,7 +600,8 @@ void CMediaPlayerPlayback::ReleaseTextures()
     // primary texture
     if (m_primarySharedHandle != INVALID_HANDLE_VALUE)
     {
-        CloseHandle(m_primarySharedHandle);
+		// commented yout while investigating SHARED_NTHANDLE issue
+        //CloseHandle(m_primarySharedHandle);
         m_primarySharedHandle = INVALID_HANDLE_VALUE;
     }
 
@@ -604,9 +621,9 @@ void CMediaPlayerPlayback::ReleaseTextures()
 }
 
 _Use_decl_annotations_
-HRESULT CMediaPlayerPlayback::InitializePlayReadyDRM()
+HRESULT CMediaPlayerPlayback::InitializeMediaPlayerWithPlayReadyDRM()
 {
-	Log(Log_Level_Info, L"CMediaPlayerPlayback::InitializePlayReadyDRM()");
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::InitializeMediaPlayerWithPlayReadyDRM()");
 
 	HRESULT hr = S_OK;
 

@@ -40,6 +40,23 @@ HRESULT PlayReadyHandler::InitalizeProtectionManager()
 		spPropertySet.Get(), &replaced));
 	IFR(AddStringProperty(spPMPropertySetMap.Get(), L"Windows.Media.Protection.MediaProtectionSystemId", L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}"));
 	IFR(AddStringProperty(spPMPropertySetMap.Get(), L"Windows.Media.Protection.MediaProtectionContainerGuid", L"{9A04F079-9840-4286-AB92-E65BE0885F95}"));
+	IFR(AddBooleanProperty(spPMPropertySetMap.Get(), L"Windows.Media.Protection.UseSoftwareProtectionLayer", true));
+	
+	ComPtr<IPropertySet> spPMPPropertySet;
+	ComPtr<IMap<HSTRING, IInspectable*>> spPMPMap;
+	ComPtr<ABI::Windows::Media::Protection::IMediaProtectionPMPServerFactory> spPMPServerFactory;
+	
+	Windows::Foundation::ActivateInstance(Wrappers::HStringReference(RuntimeClass_Windows_Foundation_Collections_PropertySet).Get(), &spPMPPropertySet);
+	IFR(spPMPPropertySet.As(&spPMPMap));
+	IFR(AddStringProperty(spPMPMap.Get(), L"Windows.Media.Protection.MediaProtectionSystemId", L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}"));
+	IFR(AddBooleanProperty(spPMPMap.Get(), L"Windows.Media.Protection.UseSoftwareProtectionLayer", true));
+
+	IFR(ABI::Windows::Foundation::GetActivationFactory(Wrappers::HStringReference(RuntimeClass_Windows_Media_Protection_MediaProtectionPMPServer).Get(), &spPMPServerFactory));
+	IFR(spPMPServerFactory->CreatePMPServer(spPMPPropertySet.Get(), &m_spPMPServer));
+
+	IFR(spPMPropertySetMap->Insert(HStringReference(L"Windows.Media.Protection.MediaProtectionPMPServer").Get(), m_spPMPServer.Get(), &replaced));
+
+	return S_OK;
 }
 
 HRESULT PlayReadyHandler::OnProtectionManager_ServiceRequested(IMediaProtectionManager * sender, IServiceRequestedEventArgs * srEvent)
@@ -144,15 +161,20 @@ HRESULT PlayReadyHandler::HandleServiceRequest(IServiceRequestedEventArgs* pIevt
 	IFR(spSvrRequest->GetRuntimeClassName(requestType.GetAddressOf()));
 	
 	Log(Log_Level_Info, L"Received License Resquest, type : %S", requestType.GetRawBuffer(&hstrLen));
-	
+
+	GUID gType;
+	spSvrRequest->get_Type(&gType);
 
 	// Verify if is Individualization
 	ComPtr<IPlayReadyIndividualizationServiceRequest> spInd;
 	hr = spSvrRequest.As(&spInd);
 	if (SUCCEEDED(hr))
 	{
-		return HandleIndividualizationRequest(spEvents);
+		hr = HandleIndividualizationRequest(spEvents);
 	}
+
+	if (SUCCEEDED(hr))
+		return hr;
 
 	ComPtr<IPlayReadyLicenseAcquisitionServiceRequest> spLA;
 

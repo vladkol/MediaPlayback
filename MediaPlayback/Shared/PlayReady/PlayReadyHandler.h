@@ -43,6 +43,23 @@ public:
 			spValue.Get(), &replaced);
 	}
 
+	static HRESULT AddBooleanProperty(ABI::Windows::Foundation::Collections::IMap<HSTRING, IInspectable*>* pIMap, PCWSTR key, bool value)
+	{
+		ComPtr<IActivationFactory> spGenericActivationFactoryInterface;
+		ComPtr<ABI::Windows::Foundation::IPropertyValueStatics> pFactory;
+
+		IFR(Windows::Foundation::GetActivationFactory(Wrappers::HStringReference(RuntimeClass_Windows_Foundation_PropertyValue).Get(), &spGenericActivationFactoryInterface));
+		IFR(spGenericActivationFactoryInterface.As(&pFactory));
+
+		ComPtr<ABI::Windows::Foundation::IPropertyValue> spValue; 
+		IFR(pFactory->CreateBoolean(value, &spValue));
+
+		boolean replaced;
+		return pIMap->Insert(Wrappers::HStringReference(key).Get(),
+			spValue.Get(), &replaced);
+	}
+
+
 	HRESULT InitalizeProtectionManager();
 
 	ComPtr<IMediaProtectionManager>& GetProtectionManager()
@@ -69,6 +86,7 @@ private:
 
 private:
 	ComPtr<IMediaProtectionManager> m_spProtectionManager;
+	ComPtr<IMediaProtectionPMPServer> m_spPMPServer;
 	EventRegistrationToken m_serviceRequestToken;
 	EventRegistrationToken m_componentLoadFailedToken;
 	DRMLicenseRequestedCallbackInternal m_licenseCallback;
