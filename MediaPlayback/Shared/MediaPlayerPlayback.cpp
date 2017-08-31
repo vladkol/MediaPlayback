@@ -205,6 +205,37 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 
 		if (m_spAdaptiveMediaSource.Get() != nullptr)
 		{
+			OutputDebugStringW(L"We have an Adaptive Streaming media source!\n");
+
+			//Here we make sure that we start at the highest available bitrate. Remove this piece if you don't want to override the default behaviour 
+			Microsoft::WRL::ComPtr<ABI::Windows::Foundation::Collections::IVectorView<UINT32>> spAvailableBitrates;
+			m_spAdaptiveMediaSource->get_AvailableBitrates(&spAvailableBitrates);
+			if (spAvailableBitrates.Get() != nullptr)
+			{
+				unsigned int size = 0;
+				spAvailableBitrates->get_Size(&size);
+
+				if (size > 1)
+				{
+					UINT32 maxBR = 0;
+					for (unsigned int i = 0; i < size; i++)
+					{
+						UINT32 uBR = 0;
+						spAvailableBitrates->GetAt(i, &uBR);
+						if (uBR > maxBR)
+							maxBR = uBR;
+					}
+
+					if (maxBR > 0)
+					{
+						m_spAdaptiveMediaSource->put_InitialBitrate(maxBR);
+					}
+
+					Log(Log_Level_Any, L"Setting initial bitrate to max: %u", maxBR);
+				}
+			}
+			// end of selecting the higest available bitrate as initial 
+
 			OutputDebugStringW(L"Adding DownloadRequested handler...");
 			auto downloadRequested = Microsoft::WRL::Callback<IDownloadRequestedEventHandler>(this, &CMediaPlayerPlayback::OnDownloadRequested);
 			m_spAdaptiveMediaSource->add_DownloadRequested(downloadRequested.Get(), &m_downloadRequestedEventToken);
