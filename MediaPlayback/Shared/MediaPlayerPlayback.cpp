@@ -231,7 +231,7 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 						m_spAdaptiveMediaSource->put_InitialBitrate(maxBR);
 					}
 
-					Log(Log_Level_Any, L"Setting initial bitrate to max: %u", maxBR);
+					Log(Log_Level_Any, L"Setting initial bitrate to max: %u\n", maxBR);
 				}
 			}
 			// end of selecting the higest available bitrate as initial 
