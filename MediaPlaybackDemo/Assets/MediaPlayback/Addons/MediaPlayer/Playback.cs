@@ -320,13 +320,22 @@ namespace MediaPlayer
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                         loaded = false;
                     }
+                    else if(args.description.width != 0 && args.description.height != 0)
+                    {
+                        currentMediaDescription.duration = args.description.duration;
+                        currentMediaDescription.width = args.description.width;
+                        currentMediaDescription.height = args.description.height;
+                        currentMediaDescription.isSeekable = args.description.isSeekable;
+                    }
                     this.State = newState;
                     Debug.Log("Playback State: " + stateType.ToString() + " - " + this.State.ToString());
                     break;
                 case Plugin.StateType.StateType_Opened:
-                    Plugin.MEDIA_DESCRIPTION description = args.description;
-                    currentMediaDescription = description;
-                    Debug.Log("Media Opened: " + description.ToString());
+                    currentMediaDescription.duration = args.description.duration;
+                    currentMediaDescription.width = args.description.width;
+                    currentMediaDescription.height = args.description.height;
+                    currentMediaDescription.isSeekable = args.description.isSeekable;
+                    Debug.Log("Media Opened: " + args.description.ToString());
                     break;
                 case Plugin.StateType.StateType_Failed:
                     loaded = false;

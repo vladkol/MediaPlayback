@@ -198,6 +198,8 @@ private:
 
     Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackSession> m_mediaPlaybackSession;
     EventRegistrationToken m_stateChangedEventToken;
+	EventRegistrationToken m_sizeChangedEventToken;
+	EventRegistrationToken m_durationChangedEventToken;
 
     CD3D11_TEXTURE2D_DESC m_textureDesc;
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_primaryTexture;

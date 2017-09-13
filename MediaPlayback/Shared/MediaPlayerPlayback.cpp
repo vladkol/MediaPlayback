@@ -689,6 +689,18 @@ HRESULT CMediaPlayerPlayback::AddStateChanged()
     auto stateChanged = Microsoft::WRL::Callback<IMediaPlaybackSessionEventHandler>(this, &CMediaPlayerPlayback::OnStateChanged);
     IFR(spSession->add_PlaybackStateChanged(stateChanged.Get(), &stateChangedToken));
     m_stateChangedEventToken = stateChangedToken;
+
+	EventRegistrationToken sizeChangedToken;
+	auto sizeChanged = Microsoft::WRL::Callback<IMediaPlaybackSessionEventHandler>(this, &CMediaPlayerPlayback::OnStateChanged);
+	IFR(spSession->add_NaturalVideoSizeChanged(sizeChanged.Get(), &sizeChangedToken));
+	m_sizeChangedEventToken = sizeChangedToken;
+
+	EventRegistrationToken durationChangedToken;
+	auto durationChanged = Microsoft::WRL::Callback<IMediaPlaybackSessionEventHandler>(this, &CMediaPlayerPlayback::OnStateChanged);
+	IFR(spSession->add_NaturalDurationChanged(durationChanged.Get(), &durationChangedToken));
+	m_durationChangedEventToken = durationChangedToken;
+
+
     m_mediaPlaybackSession.Attach(spSession.Detach());
 
     return S_OK;
@@ -701,6 +713,8 @@ void CMediaPlayerPlayback::RemoveStateChanged()
     if (nullptr != m_mediaPlaybackSession)
     {
         LOG_RESULT(m_mediaPlaybackSession->remove_PlaybackStateChanged(m_stateChangedEventToken));
+		LOG_RESULT(m_mediaPlaybackSession->remove_NaturalVideoSizeChanged(m_sizeChangedEventToken));
+		LOG_RESULT(m_mediaPlaybackSession->remove_NaturalDurationChanged(m_durationChangedEventToken));
 
         m_mediaPlaybackSession.Reset();
         m_mediaPlaybackSession = nullptr;
@@ -834,14 +848,39 @@ HRESULT CMediaPlayerPlayback::OnStateChanged(
 {
 	if (m_bIgnoreEvents)
 		return S_OK;
+
+	auto session = m_mediaPlaybackSession;
+	if (session == nullptr)
+		session = sender;
 	
 	MediaPlaybackState state;
-    IFR(sender->get_PlaybackState(&state));
+    IFR(m_mediaPlaybackSession->get_PlaybackState(&state));
 
     PLAYBACK_STATE playbackState;
     ZeroMemory(&playbackState, sizeof(playbackState));
     playbackState.type = StateType::StateType_StateChanged;
     playbackState.value.state = static_cast<PlaybackState>(state);
+
+	if (state != MediaPlaybackState::MediaPlaybackState_None && state != MediaPlaybackState::MediaPlaybackState_Opening)
+	{
+		// width & height of video
+		UINT32 width = 0;
+		IFR(session->get_NaturalVideoWidth(&width));
+
+		UINT32 height = 0;
+		IFR(session->get_NaturalVideoHeight(&height));
+
+		boolean canSeek = false;
+		IFR(session->get_CanSeek(&canSeek));
+
+		ABI::Windows::Foundation::TimeSpan duration;
+		IFR(session->get_NaturalDuration(&duration));
+
+		playbackState.value.description.canSeek = canSeek;
+		playbackState.value.description.duration = duration.Duration;
+		playbackState.value.description.width = width;
+		playbackState.value.description.height = height;
+	}
 
     if (m_fnStateCallback != nullptr)
         m_fnStateCallback(m_pClientObject, playbackState);
