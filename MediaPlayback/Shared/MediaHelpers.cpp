@@ -13,6 +13,7 @@
 
 #include "pch.h"
 #include "MediaHelpers.h"
+#include <windows.storage.accesscache.h>
 
 using namespace ABI::Windows::Graphics::DirectX::Direct3D11;
 using namespace ABI::Windows::Media::Core;
@@ -177,17 +178,98 @@ HRESULT CreateMediaSource(
 
 	Microsoft::WRL::ComPtr<ABI::Windows::Media::Core::IMediaSource2> spMediaSource2;
 
-	Microsoft::WRL::ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource> adaptiveSource;
-	CreateAdaptiveMediaSourceFromUri(pszUrl, adaptiveSource.GetAddressOf(), nullptr);
-	
-	if(adaptiveSource != nullptr)
-		spMediaSourceStatics->CreateFromAdaptiveMediaSource(adaptiveSource.Get(), &spMediaSource2);
-	
-	if(spMediaSource2.Get() == nullptr)
+#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	Microsoft::WRL::Wrappers::HString scheme;
+	spUri->get_SchemeName(scheme.GetAddressOf());
+	if (std::wstring(L"file-access") == scheme.GetRawBuffer(nullptr))
 	{
-		IFR(spMediaSourceStatics->CreateFromUri(
-			spUri.Get(),
-			&spMediaSource2));
+		Microsoft::WRL::Wrappers::HString path;
+		spUri->get_Path(path.GetAddressOf());
+		const wchar_t* pathPtr = path.GetRawBuffer(nullptr);
+		if (pathPtr[0] == L'\\' || pathPtr[0] == L'/')
+			pathPtr++;
+
+		ComPtr<ABI::Windows::Storage::AccessCache::IStorageApplicationPermissionsStatics> permStats;
+		ComPtr<ABI::Windows::Storage::AccessCache::IStorageItemAccessList> accList;
+		IFR(ABI::Windows::Foundation::GetActivationFactory(
+			Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Storage_AccessCache_StorageApplicationPermissions).Get(),
+			&permStats));
+		IFR(permStats->get_FutureAccessList(&accList));
+
+		boolean hasItem = false;
+		Microsoft::WRL::Wrappers::HStringReference token(pathPtr);
+		accList->ContainsItem(token.Get(), &hasItem);
+		if (hasItem)
+		{
+			ComPtr<IAsyncOperation<ABI::Windows::Storage::StorageFile*>> fileOp;
+			ComPtr<ABI::Windows::Storage::IStorageFile> file;
+			Event operationCompleted(CreateEvent(nullptr, TRUE, FALSE, nullptr));
+			HRESULT hrResult = S_OK;
+
+			auto callback = Callback<ABI::Windows::Foundation::IAsyncOperationCompletedHandler<ABI::Windows::Storage::StorageFile*>>(
+				[&operationCompleted, &file, &hrResult](
+					IAsyncOperation<ABI::Windows::Storage::StorageFile*>* pOper, 
+					AsyncStatus status
+					) -> HRESULT
+			{
+				if (status == AsyncStatus::Completed)
+				{
+					ABI::Windows::Storage::IStorageFile* pFile = nullptr;
+					hrResult = pOper->GetResults(&pFile);
+					file.Attach(pFile);
+				}
+				else
+				{
+					hrResult = E_FAIL;
+				}
+
+				SetEvent(operationCompleted.Get());
+				return S_OK;
+			});
+
+			concurrency::create_task([&]() {
+				hrResult = accList->GetFileAsync(token.Get(), fileOp.GetAddressOf());
+				if (fileOp)
+				{
+					fileOp->put_Completed(callback.Get());
+				}
+				else
+				{
+					SetEvent(operationCompleted.Get());
+				}
+			});
+
+			DWORD result = WaitForSingleObject(operationCompleted.Get(), INFINITE);
+
+			if (file.Get())
+			{
+				IFR(spMediaSourceStatics->CreateFromStorageFile(file.Get(), &spMediaSource2));
+			}
+			else
+			{
+				return hrResult;
+			}
+		}
+		else
+		{
+			return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
+		}
+	}
+	else
+#endif
+	{
+		Microsoft::WRL::ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource> adaptiveSource;
+		CreateAdaptiveMediaSourceFromUri(pszUrl, adaptiveSource.GetAddressOf(), nullptr);
+
+		if (adaptiveSource != nullptr)
+			spMediaSourceStatics->CreateFromAdaptiveMediaSource(adaptiveSource.Get(), &spMediaSource2);
+
+		if (spMediaSource2.Get() == nullptr)
+		{
+			IFR(spMediaSourceStatics->CreateFromUri(
+				spUri.Get(),
+				&spMediaSource2));
+		}
 	}
 
 
