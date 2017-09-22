@@ -15,7 +15,7 @@
 // #define LS_HEVC_FIX 1 
 
 // uncomment next line if you want to build the library without FFMPEG support and dependencies 
-// #define NO_FFMPEG 1
+#define NO_FFMPEG 1
 
 
 #include "targetver.h"
