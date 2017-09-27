@@ -322,6 +322,11 @@ namespace MediaPlayer
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                         loaded = false;
                     }
+                    else if(newState == PlaybackState.Ended)
+                    {
+                        currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
+                        loaded = false;
+                    }
                     else if(newState != PlaybackState.Buffering && args.description.width != 0 && args.description.height != 0)
                     {
                         currentMediaDescription.duration = args.description.duration;
