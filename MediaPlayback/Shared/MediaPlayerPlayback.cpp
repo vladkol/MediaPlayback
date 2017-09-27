@@ -270,9 +270,12 @@ HRESULT CMediaPlayerPlayback::Play()
         LOG_RESULT(m_mediaPlayer->get_CurrentState(&state));
 
         IFR(m_mediaPlayer->Play());
+		return S_OK;
     }
-
-    return E_ILLEGAL_METHOD_CALL;
+	else
+	{
+		return E_ILLEGAL_METHOD_CALL;
+	}
 }
 
 _Use_decl_annotations_
@@ -283,9 +286,12 @@ HRESULT CMediaPlayerPlayback::Pause()
     if (nullptr != m_mediaPlayer)
     {
         IFR(m_mediaPlayer->Pause());
+		return S_OK;
     }
-
-    return E_ILLEGAL_METHOD_CALL;
+	else
+	{
+		return E_ILLEGAL_METHOD_CALL;
+	}
 }
 
 _Use_decl_annotations_

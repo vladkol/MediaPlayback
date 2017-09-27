@@ -146,7 +146,7 @@ namespace MediaPlayer
 
         public void Stop()
         {
-            CheckHR(Plugin.Stop(pluginInstance));
+            Plugin.Stop(pluginInstance);
             currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
             State = PlaybackState.None;
             currentItem = string.Empty;
