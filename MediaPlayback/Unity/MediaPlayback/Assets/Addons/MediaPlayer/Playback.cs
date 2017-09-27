@@ -305,7 +305,9 @@ namespace MediaPlayer
             switch (stateType)
             {
                 case Plugin.StateType.StateType_None:
-                    currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
+                    var newState0 = (PlaybackState)Enum.ToObject(typeof(PlaybackState), args.state);
+                    if(newState0 == PlaybackState.Ended || newState0 == PlaybackState.None)
+                        currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                     loaded = false;
                     break;
                 case Plugin.StateType.StateType_StateChanged:
@@ -320,7 +322,7 @@ namespace MediaPlayer
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                         loaded = false;
                     }
-                    else if(args.description.width != 0 && args.description.height != 0)
+                    else if(newState != PlaybackState.Buffering && args.description.width != 0 && args.description.height != 0)
                     {
                         currentMediaDescription.duration = args.description.duration;
                         currentMediaDescription.width = args.description.width;
@@ -432,7 +434,7 @@ namespace MediaPlayer
                 StateType_Failed,
             };
 
-            [StructLayout(LayoutKind.Sequential, Pack = 4)]
+            [StructLayout(LayoutKind.Sequential, Pack = 8)]
             public struct MEDIA_DESCRIPTION
             {
                 public UInt32 width;
@@ -452,19 +454,12 @@ namespace MediaPlayer
                 }
             };
 
-            [StructLayout(LayoutKind.Explicit, Pack = 4)]
+            [StructLayout(LayoutKind.Sequential, Pack = 8)]
             public struct PLAYBACK_STATE
             {
-                [FieldOffset(0)]
-                public UInt16 type;
-
-                [FieldOffset(4)]
-                public UInt16 state;
-
-                [FieldOffset(4)]
+                public UInt32 type;
+                public UInt32 state;
                 public Int64 hresult;
-
-                [FieldOffset(4)]
                 public MEDIA_DESCRIPTION description;
             };
 

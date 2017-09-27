@@ -783,10 +783,11 @@ HRESULT CMediaPlayerPlayback::OnOpened(
     PLAYBACK_STATE playbackState;
     ZeroMemory(&playbackState, sizeof(playbackState));
     playbackState.type = StateType::StateType_Opened;
-    playbackState.value.description.width = width;
-    playbackState.value.description.height = height;
-    playbackState.value.description.canSeek = canSeek;
-    playbackState.value.description.duration = duration.Duration;
+	playbackState.state = PlaybackState::PlaybackState_None;
+    playbackState.description.width = width;
+    playbackState.description.height = height;
+    playbackState.description.canSeek = canSeek;
+    playbackState.description.duration = duration.Duration;
 
     if (m_fnStateCallback != nullptr)
         m_fnStateCallback(m_pClientObject, playbackState);
@@ -805,7 +806,7 @@ HRESULT CMediaPlayerPlayback::OnEnded(
 	PLAYBACK_STATE playbackState;
     ZeroMemory(&playbackState, sizeof(playbackState));
     playbackState.type = StateType::StateType_StateChanged;
-    playbackState.value.state = PlaybackState::PlaybackState_Ended;
+    playbackState.state = PlaybackState::PlaybackState_Ended;
 
     if (m_fnStateCallback != nullptr)
         m_fnStateCallback(m_pClientObject, playbackState);
@@ -833,7 +834,8 @@ HRESULT CMediaPlayerPlayback::OnFailed(
     PLAYBACK_STATE playbackState;
     ZeroMemory(&playbackState, sizeof(playbackState));
     playbackState.type = StateType::StateType_Failed;
-    playbackState.value.hresult = hr;
+	playbackState.state = PlaybackState::PlaybackState_None;
+    playbackState.hresult = hr;
 
     if (m_fnStateCallback != nullptr)
         m_fnStateCallback(m_pClientObject, playbackState);
@@ -854,32 +856,34 @@ HRESULT CMediaPlayerPlayback::OnStateChanged(
 		session = sender;
 	
 	MediaPlaybackState state;
-    IFR(m_mediaPlaybackSession->get_PlaybackState(&state));
+    IFR(session->get_PlaybackState(&state));
 
     PLAYBACK_STATE playbackState;
     ZeroMemory(&playbackState, sizeof(playbackState));
     playbackState.type = StateType::StateType_StateChanged;
-    playbackState.value.state = static_cast<PlaybackState>(state);
+    playbackState.state = static_cast<PlaybackState>(state);
 
-	if (state != MediaPlaybackState::MediaPlaybackState_None && state != MediaPlaybackState::MediaPlaybackState_Opening)
+	if (state != MediaPlaybackState::MediaPlaybackState_None && 
+		state != MediaPlaybackState::MediaPlaybackState_Opening)
 	{
 		// width & height of video
 		UINT32 width = 0;
-		IFR(session->get_NaturalVideoWidth(&width));
-
 		UINT32 height = 0;
-		IFR(session->get_NaturalVideoHeight(&height));
+		if (SUCCEEDED(session->get_NaturalVideoWidth(&width)) &&
+		    SUCCEEDED(session->get_NaturalVideoHeight(&height)) )
+		{
+			playbackState.description.width = width;
+			playbackState.description.height = height;
 
-		boolean canSeek = false;
-		IFR(session->get_CanSeek(&canSeek));
+			boolean canSeek = false;
+			session->get_CanSeek(&canSeek);
 
-		ABI::Windows::Foundation::TimeSpan duration;
-		IFR(session->get_NaturalDuration(&duration));
+			ABI::Windows::Foundation::TimeSpan duration;
+			session->get_NaturalDuration(&duration);
 
-		playbackState.value.description.canSeek = canSeek;
-		playbackState.value.description.duration = duration.Duration;
-		playbackState.value.description.width = width;
-		playbackState.value.description.height = height;
+			playbackState.description.canSeek = canSeek;
+			playbackState.description.duration = duration.Duration;
+		}
 	}
 
     if (m_fnStateCallback != nullptr)

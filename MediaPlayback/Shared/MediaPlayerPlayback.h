@@ -16,7 +16,7 @@
 
 #include "PlayReady\PlayReadyHandler.h"
 
-enum class StateType : UINT16
+enum class StateType : UINT32
 {
     StateType_None = 0,
     StateType_Opened,
@@ -24,7 +24,7 @@ enum class StateType : UINT16
     StateType_Failed,
 };
 
-enum class PlaybackState : UINT16
+enum class PlaybackState : UINT32
 {
     PlaybackState_None = 0,
     PlaybackState_Opening,
@@ -34,7 +34,7 @@ enum class PlaybackState : UINT16
     PlaybackState_Ended
 };
 
-#pragma pack(push, 4)
+#pragma pack(push, 8)
 typedef struct _MEDIA_DESCRIPTION
 {
     UINT32 width;
@@ -44,15 +44,13 @@ typedef struct _MEDIA_DESCRIPTION
 } MEDIA_DESCRIPTION;
 #pragma pack(pop)
 
-#pragma pack(push, 4)
+#pragma pack(push, 8)
 typedef struct _PLAYBACK_STATE
 {
     StateType type;
-    union {
-        PlaybackState state;
-        HRESULT hresult;
-        MEDIA_DESCRIPTION description;
-    } value;
+	PlaybackState state;
+	HRESULT hresult;
+	MEDIA_DESCRIPTION description;
 } PLAYBACK_STATE;
 #pragma pack(pop)
 
