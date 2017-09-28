@@ -206,5 +206,7 @@ private:
     HANDLE m_primarySharedHandle;
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_primaryMediaTexture;
     Microsoft::WRL::ComPtr<ABI::Windows::Graphics::DirectX::Direct3D11::IDirect3DSurface> m_primaryMediaSurface;
+
+	bool m_readyForFrames;
 };
 

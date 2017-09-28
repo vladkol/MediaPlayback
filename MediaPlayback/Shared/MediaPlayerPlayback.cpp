@@ -74,6 +74,7 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
     , m_primaryMediaTexture(nullptr)
     , m_primaryMediaSurface(nullptr)
 	, m_bIgnoreEvents(false)
+	, m_readyForFrames(false)
 	, m_playreadyHandler(this, CMediaPlayerPlayback::LicenseRequestInternal)
 {
 }
@@ -150,6 +151,7 @@ HRESULT CMediaPlayerPlayback::CreatePlaybackTexture(
         IFR(E_INVALIDARG);
 
     *ppvTexture = nullptr;
+	m_readyForFrames = false;
 
     // create the video texture description based on texture format
     m_textureDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, width, height);
@@ -167,6 +169,8 @@ HRESULT CMediaPlayerPlayback::CreatePlaybackTexture(
     IFR(m_primaryTextureSRV.CopyTo(&spSRV));
 
     *ppvTexture = spSRV.Detach();
+
+	m_readyForFrames = true;
 
     return S_OK;
 }
@@ -557,12 +561,25 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::CreateTextures()
 {
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::CreateTextures()");
+
     if (nullptr != m_primaryTexture || nullptr != m_primaryTextureSRV)
         ReleaseTextures();
 
+	HRESULT hr = S_OK;
+
+	if (!m_d3dDevice)
+	{
+		return E_ILLEGAL_METHOD_CALL;
+	}
+
     // create staging texture on unity device
     ComPtr<ID3D11Texture2D> spTexture;
-    IFR(m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, &spTexture));
+    hr = m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, &spTexture);
+	if (FAILED(hr))
+	{
+		IFR(hr);
+	}
 
     auto srvDesc = CD3D11_SHADER_RESOURCE_VIEW_DESC(spTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D);
     ComPtr<ID3D11ShaderResourceView> spSRV;
@@ -573,7 +590,6 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
     IFR(spTexture.As(&spDXGIResource));
 
     HANDLE sharedHandle = INVALID_HANDLE_VALUE;
-	HRESULT hr = S_OK;
     ComPtr<ID3D11Texture2D> spMediaTexture;
     ComPtr<IDirect3DSurface> spMediaSurface;
 
@@ -633,6 +649,8 @@ _Use_decl_annotations_
 void CMediaPlayerPlayback::ReleaseTextures()
 {
     Log(Log_Level_Info, L"CMediaPlayerPlayback::ReleaseTextures()");
+
+	m_readyForFrames = false;
 
     // primary texture
     if (m_primarySharedHandle != INVALID_HANDLE_VALUE)
@@ -744,6 +762,9 @@ void CMediaPlayerPlayback::ReleaseResources()
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::OnVideoFrameAvailable(IMediaPlayer* sender, IInspectable* arg)
 {
+	if (!m_readyForFrames)
+		return S_OK;
+
     ComPtr<IMediaPlayer> spMediaPlayer(sender);
 
     ComPtr<IMediaPlayer5> spMediaPlayer5;
