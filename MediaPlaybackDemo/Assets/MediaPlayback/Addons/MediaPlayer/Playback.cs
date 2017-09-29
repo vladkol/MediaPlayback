@@ -19,8 +19,8 @@ namespace MediaPlayer
 {
     public enum VideoLayout
     {
-        Mono = 0, 
-        StereoTopBottom, 
+        Mono = 0,
+        StereoTopBottom,
         StereoLeftRight
     }
     public enum StereoEye
@@ -41,8 +41,48 @@ namespace MediaPlayer
         public Renderer targetRendererRightOrBoth = null;
 
         // texture size
-        public uint TextureWidth = 4096;
-        public uint TextureHeight = 4096;
+        public uint textureWidth
+        {
+            get
+            {
+                return TextureWidth;
+            }
+            set
+            {
+                if (this.playbackTexture != null)
+                {
+                    Debug.LogError("Cannot change texture size if playbackTexture is not null(already created).");
+#if UNITY_EDITOR || DEBUG
+                    throw new UnityException("Cannot change texture size if playbackTexture is not null (already created).");
+#else
+                    
+                    return;
+#endif
+                }
+
+                TextureWidth = value;
+            }
+        }
+        public uint textureHeight
+        {
+            get
+            {
+                return TextureHeight;
+            }
+            set
+            {
+                if (this.playbackTexture != null)
+                {
+#if UNITY_EDITOR || DEBUG
+                    throw new UnityException("Cannot change texture size if playbackTexture is not null (already created).");
+#else
+                    return;
+#endif
+                }
+
+                TextureHeight = value;
+            }
+        }
 
         public bool autoAdjustMaterial = false;
 
@@ -65,7 +105,7 @@ namespace MediaPlayer
                 {
                     this.previousState = this.currentState;
                     this.currentState = value;
-                        var args = new ChangedEventArgs<PlaybackState>(this.previousState, this.currentState);
+                    var args = new ChangedEventArgs<PlaybackState>(this.previousState, this.currentState);
 
 #if UNITY_WSA_10_0
                     UnityEngine.WSA.Application.InvokeOnAppThread(() =>
@@ -79,6 +119,13 @@ namespace MediaPlayer
                 }
             }
         }
+
+
+        [SerializeField]
+        private uint TextureWidth = 4096;
+        [SerializeField]
+        private uint TextureHeight = 4096;
+
 
         private IntPtr pluginInstance = IntPtr.Zero;
         private GCHandle thisObject;
@@ -118,13 +165,13 @@ namespace MediaPlayer
                 uriStr = "file:///" + System.IO.Path.Combine(Application.streamingAssetsPath, uriOrPath);
             }
 
-            if(usePlayReadyDRM)
+            if (usePlayReadyDRM)
             {
                 InitializePlayReady();
             }
 
             loaded = (0 == CheckHR(Plugin.LoadContent(pluginInstance, UseFFMPEG, SoftwareDecode, uriStr)));
-            if(loaded)
+            if (loaded)
             {
                 currentItem = uriOrPath;
             }
@@ -158,7 +205,7 @@ namespace MediaPlayer
         internal void PlayWithFFmpeg(string selectedItem, bool softwareDecode)
         {
             CheckHR(Plugin.LoadContent(pluginInstance, true, softwareDecode, selectedItem));     // hardware decode video. 
-                                                                        // if using a non-supported type change to true (eg. Ogg)
+                                                                                                 // if using a non-supported type change to true (eg. Ogg)
             CheckHR(Plugin.Play(pluginInstance));
         }
 
@@ -264,9 +311,9 @@ namespace MediaPlayer
                 float videoWidth = GetVideoWidth();
                 float videoHeight = GetVideoHeight();
 
-                float targetTextureHeigh = TextureWidth * videoHeight / videoWidth;
+                float targetTextureHeigh = textureWidth * videoHeight / videoWidth;
 
-                float ratio = targetTextureHeigh / TextureHeight;
+                float ratio = targetTextureHeigh / textureHeight;
 
                 var scaleLeft = new Vector2(1, 1);
                 var scaleRight = new Vector2(1, 1);
@@ -274,28 +321,31 @@ namespace MediaPlayer
                 switch (layout)
                 {
                     case VideoLayout.StereoLeftRight:
-                        scaleLeft = new Vector2(0.5f, 1f);
-                        scaleRight = new Vector2(1f, 0.5f);
+                        ratio /= 2;
+                        scaleLeft = new Vector2(0.5f, -1f * ratio);
+                        scaleRight = new Vector2(0.5f, -1f * ratio);
+                        
                         break;
                     case VideoLayout.StereoTopBottom:
-                        scaleLeft = new Vector2(1, 0.5f);
-                        scaleRight = new Vector2(0.5f, 1f);
+                        ratio /= 2;
+                        scaleLeft = new Vector2(1, -0.5f);
+                        scaleRight = new Vector2(1, -0.5f);
+                        
                         break;
                     default:
-                        scaleLeft = new Vector2(1f, 1f);
-                        scaleRight = new Vector2(1f, 1f);
+                        scaleLeft = new Vector2(1f, -1f * ratio);
+                        scaleRight = new Vector2(1f, -1f * ratio);
                         break;
                 }
-                if(matLeft != null)
+                if (matLeft != null)
                 {
                     matLeft.SetTextureScale("_MainTex", scaleLeft);
-                    matLeft.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY));
+                    matLeft.SetTextureOffset("_MainTex", new Vector2(textureOffsetX + (1f - scaleLeft.x) / -4, textureOffsetY + (1f + scaleLeft.y) / -4));
                 }
                 if (matRight != null)
                 {
                     matRight.SetTextureScale("_MainTex", scaleRight);
-                    matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY));
-
+                    matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX + (1f - scaleRight.x) / -4, textureOffsetY + (1f + scaleRight.y) / -4));
                 }
             }
 
@@ -314,16 +364,16 @@ namespace MediaPlayer
 
             // create native texture for playback
             IntPtr nativeTexture = IntPtr.Zero;
-            CheckHR(Plugin.CreatePlaybackTexture(pluginInstance, this.TextureWidth, this.TextureHeight, out nativeTexture));
+            CheckHR(Plugin.CreatePlaybackTexture(pluginInstance, this.textureWidth, this.textureHeight, out nativeTexture));
 
             // create the unity texture2d 
-            this.playbackTexture = Texture2D.CreateExternalTexture((int)this.TextureWidth, (int)this.TextureHeight, TextureFormat.BGRA32, false, false, nativeTexture);
+            this.playbackTexture = Texture2D.CreateExternalTexture((int)this.textureWidth, (int)this.textureHeight, TextureFormat.BGRA32, false, false, nativeTexture);
 
             // set texture for the shader
             if (targetRendererRightOrBoth == null && targetRendererLeftOrBoth == null)
                 targetRendererRightOrBoth = GetComponent<Renderer>();
 
-            if(targetRendererRightOrBoth)
+            if (targetRendererRightOrBoth)
                 targetRendererRightOrBoth.material.mainTexture = this.playbackTexture;
             if (targetRendererLeftOrBoth)
                 targetRendererLeftOrBoth.material.mainTexture = this.playbackTexture;
@@ -346,7 +396,7 @@ namespace MediaPlayer
                 pluginInstance = IntPtr.Zero;
             }
 
-            if(thisObject.Target != null)
+            if (thisObject.Target != null)
             {
                 thisObject.Free();
                 thisObject.Target = null;
@@ -372,9 +422,9 @@ namespace MediaPlayer
 
 #if UNITY_WSA_10_0
             UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-        {
-            thisObject.OnStateChanged(args);
-        }, false);
+            {
+                thisObject.OnStateChanged(args);
+            }, false);
 #else
             thisObject.OnStateChanged(args);
 #endif
@@ -392,7 +442,7 @@ namespace MediaPlayer
                 catch { }
             }
 
-            if(autoAdjustMaterial && hasNewSize)
+            if (autoAdjustMaterial && hasNewSize)
             {
                 hasNewSize = false;
                 needMaterialUpdateAfterNewSize = true;
@@ -408,15 +458,15 @@ namespace MediaPlayer
             {
                 case Plugin.StateType.StateType_None:
                     var newState0 = (PlaybackState)Enum.ToObject(typeof(PlaybackState), args.state);
-                    if(newState0 == PlaybackState.Ended || newState0 == PlaybackState.None)
+                    if (newState0 == PlaybackState.Ended || newState0 == PlaybackState.None)
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                     loaded = false;
                     break;
                 case Plugin.StateType.StateType_StateChanged:
                     var newState = (PlaybackState)Enum.ToObject(typeof(PlaybackState), args.state);
-                    if(newState == PlaybackState.None)
+                    if (newState == PlaybackState.None)
                     {
-                        if(State == PlaybackState.Playing || State == PlaybackState.Paused)
+                        if (State == PlaybackState.Playing || State == PlaybackState.Paused)
                         {
                             Debug.Log("Video ended");
                             newState = PlaybackState.Ended;
@@ -424,12 +474,12 @@ namespace MediaPlayer
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                         loaded = false;
                     }
-                    else if(newState == PlaybackState.Ended)
+                    else if (newState == PlaybackState.Ended)
                     {
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                         loaded = false;
                     }
-                    else if(newState != PlaybackState.Buffering && args.description.width != 0 && args.description.height != 0)
+                    else if (newState != PlaybackState.Buffering && args.description.width != 0 && args.description.height != 0)
                     {
                         currentMediaDescription.duration = args.description.duration;
                         currentMediaDescription.width = args.description.width;
