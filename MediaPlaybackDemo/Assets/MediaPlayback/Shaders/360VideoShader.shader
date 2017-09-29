@@ -1,8 +1,5 @@
-﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
-// Based on Unlit shader, but culls the front faces instead of the back
-
-Shader "InsideVisible" {
+﻿Shader "360Video/VideoRevertNormals" 
+{
 	Properties{
 		_MainTex("Base (RGB)", 2D) = "white" {}
 	}
@@ -36,10 +33,7 @@ Shader "InsideVisible" {
 	{
 		v2f o;
 		o.vertex = UnityObjectToClipPos(v.vertex);
-		// ADDED BY BERNIE:
 		v.texcoord.x = 1 - v.texcoord.x;
-		//v.texcoord.y *= 0.5;
-		//v.texcoord.y += 0.25;
 		o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
 		return o;
 	}
