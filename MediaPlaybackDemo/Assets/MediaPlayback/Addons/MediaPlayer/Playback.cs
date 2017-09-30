@@ -314,6 +314,8 @@ namespace MediaPlayer
                 float targetTextureHeigh = textureWidth * videoHeight / videoWidth;
 
                 float ratio = targetTextureHeigh / textureHeight;
+                float ratioDiff = 1.0f - ratio;
+                ratioDiff /= 2;
 
                 var scaleLeft = new Vector2(1, 1);
                 var scaleRight = new Vector2(1, 1);
@@ -321,13 +323,12 @@ namespace MediaPlayer
                 switch (layout)
                 {
                     case VideoLayout.StereoLeftRight:
-                        ratio /= 2;
                         scaleLeft = new Vector2(0.5f, -1f * ratio);
                         scaleRight = new Vector2(0.5f, -1f * ratio);
                         
                         break;
                     case VideoLayout.StereoTopBottom:
-                        ratio /= 2;
+                        ratioDiff /= 2;
                         scaleLeft = new Vector2(1, -0.5f);
                         scaleRight = new Vector2(1, -0.5f);
                         
@@ -340,12 +341,12 @@ namespace MediaPlayer
                 if (matLeft != null)
                 {
                     matLeft.SetTextureScale("_MainTex", scaleLeft);
-                    matLeft.SetTextureOffset("_MainTex", new Vector2(textureOffsetX + (1f - scaleLeft.x) / -4, textureOffsetY + (1f + scaleLeft.y) / -4));
+                    matLeft.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY - ratioDiff));
                 }
                 if (matRight != null)
                 {
                     matRight.SetTextureScale("_MainTex", scaleRight);
-                    matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX + (1f - scaleRight.x) / -4, textureOffsetY + (1f + scaleRight.y) / -4));
+                    matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX + (1f - scaleRight.x), textureOffsetY - ratioDiff));
                 }
             }
 

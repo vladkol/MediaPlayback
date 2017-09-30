@@ -17,6 +17,19 @@ using UnityEngine;
 
 namespace MediaPlayer
 {
+    public enum VideoLayout
+    {
+        Mono = 0,
+        StereoTopBottom,
+        StereoLeftRight
+    }
+    public enum StereoEye
+    {
+        Both = 0,
+        Left,
+        Right
+    }
+
     public class Playback : MonoBehaviour
     {
         // state handling
@@ -24,9 +37,59 @@ namespace MediaPlayer
         public Action<object, long> PlaybackFailed;
         public MediaPlayer.ActionRef<MediaPlayer.PlayReadyLicenseData> DRMLicenseRequested;
 
+        public Renderer targetRendererLeftOrBoth = null;
+        public Renderer targetRendererRightOrBoth = null;
+
         // texture size
-        public uint TextureWidth = 4096;
-        public uint TextureHeight = 4096;
+        public uint textureWidth
+        {
+            get
+            {
+                return TextureWidth;
+            }
+            set
+            {
+                if (this.playbackTexture != null)
+                {
+                    Debug.LogError("Cannot change texture size if playbackTexture is not null(already created).");
+#if UNITY_EDITOR || DEBUG
+                    throw new UnityException("Cannot change texture size if playbackTexture is not null (already created).");
+#else
+                    
+                    return;
+#endif
+                }
+
+                TextureWidth = value;
+            }
+        }
+        public uint textureHeight
+        {
+            get
+            {
+                return TextureHeight;
+            }
+            set
+            {
+                if (this.playbackTexture != null)
+                {
+#if UNITY_EDITOR || DEBUG
+                    throw new UnityException("Cannot change texture size if playbackTexture is not null (already created).");
+#else
+                    return;
+#endif
+                }
+
+                TextureHeight = value;
+            }
+        }
+
+        public bool autoAdjustMaterial = false;
+
+        public VideoLayout layout = VideoLayout.Mono;
+
+        public float textureOffsetX = 0.0f;
+        public float textureOffsetY = 0.0f;
 
         public bool UseFFMPEG = false;
         public bool SoftwareDecode = false;
@@ -42,22 +105,27 @@ namespace MediaPlayer
                 {
                     this.previousState = this.currentState;
                     this.currentState = value;
-                    if (this.PlaybackStateChanged != null)
-                    {
-                        var args = new ChangedEventArgs<PlaybackState>(this.previousState, this.currentState);
+                    var args = new ChangedEventArgs<PlaybackState>(this.previousState, this.currentState);
 
 #if UNITY_WSA_10_0
-                        UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-                        {
-                            this.PlaybackStateChanged(this, args);
-                        }, false);
+                    UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                    {
+                        TriggerPlaybackStateChangedEvent(args);
+
+                    }, false);
 #else
-                        this.PlaybackStateChanged(this, args);
+                    TriggerPlaybackStateChangedEvent(args);
 #endif
-                    }
                 }
             }
         }
+
+
+        [SerializeField]
+        private uint TextureWidth = 4096;
+        [SerializeField]
+        private uint TextureHeight = 4096;
+
 
         private IntPtr pluginInstance = IntPtr.Zero;
         private GCHandle thisObject;
@@ -71,6 +139,8 @@ namespace MediaPlayer
         private Plugin.StateChangedCallback stateCallback;
 
         private bool loaded = false;
+        private bool hasNewSize = false;
+        private bool needMaterialUpdateAfterNewSize = false;
         private Plugin.MEDIA_DESCRIPTION currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
 
         private PlayReadyLicenseData playReadyLicense;
@@ -95,13 +165,13 @@ namespace MediaPlayer
                 uriStr = "file:///" + System.IO.Path.Combine(Application.streamingAssetsPath, uriOrPath);
             }
 
-            if(usePlayReadyDRM)
+            if (usePlayReadyDRM)
             {
                 InitializePlayReady();
             }
 
             loaded = (0 == CheckHR(Plugin.LoadContent(pluginInstance, UseFFMPEG, SoftwareDecode, uriStr)));
-            if(loaded)
+            if (loaded)
             {
                 currentItem = uriOrPath;
             }
@@ -135,7 +205,7 @@ namespace MediaPlayer
         internal void PlayWithFFmpeg(string selectedItem, bool softwareDecode)
         {
             CheckHR(Plugin.LoadContent(pluginInstance, true, softwareDecode, selectedItem));     // hardware decode video. 
-                                                                        // if using a non-supported type change to true (eg. Ogg)
+                                                                                                 // if using a non-supported type change to true (eg. Ogg)
             CheckHR(Plugin.Play(pluginInstance));
         }
 
@@ -225,6 +295,63 @@ namespace MediaPlayer
             yield return StartCoroutine("CallPluginAtEndOfFrames");
         }
 
+        private void Update()
+        {
+            if (needMaterialUpdateAfterNewSize)
+            {
+                needMaterialUpdateAfterNewSize = false;
+                Material matLeft = null;
+                Material matRight = null;
+
+                if (targetRendererLeftOrBoth != null)
+                    matLeft = targetRendererLeftOrBoth.material;
+                if (targetRendererRightOrBoth != null)
+                    matRight = targetRendererRightOrBoth.material;
+
+                float videoWidth = GetVideoWidth();
+                float videoHeight = GetVideoHeight();
+
+                float targetTextureHeigh = textureWidth * videoHeight / videoWidth;
+
+                float ratio = targetTextureHeigh / textureHeight;
+                float ratioDiff = 1.0f - ratio;
+                ratioDiff /= 2;
+
+                var scaleLeft = new Vector2(1, 1);
+                var scaleRight = new Vector2(1, 1);
+
+                switch (layout)
+                {
+                    case VideoLayout.StereoLeftRight:
+                        scaleLeft = new Vector2(0.5f, -1f * ratio);
+                        scaleRight = new Vector2(0.5f, -1f * ratio);
+                        
+                        break;
+                    case VideoLayout.StereoTopBottom:
+                        ratioDiff /= 2;
+                        scaleLeft = new Vector2(1, -0.5f);
+                        scaleRight = new Vector2(1, -0.5f);
+                        
+                        break;
+                    default:
+                        scaleLeft = new Vector2(1f, -1f * ratio);
+                        scaleRight = new Vector2(1f, -1f * ratio);
+                        break;
+                }
+                if (matLeft != null)
+                {
+                    matLeft.SetTextureScale("_MainTex", scaleLeft);
+                    matLeft.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY - ratioDiff));
+                }
+                if (matRight != null)
+                {
+                    matRight.SetTextureScale("_MainTex", scaleRight);
+                    matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX + (1f - scaleRight.x), textureOffsetY - ratioDiff));
+                }
+            }
+
+        }
+
         private void OnEnable()
         {
             // create callback
@@ -238,13 +365,19 @@ namespace MediaPlayer
 
             // create native texture for playback
             IntPtr nativeTexture = IntPtr.Zero;
-            CheckHR(Plugin.CreatePlaybackTexture(pluginInstance, this.TextureWidth, this.TextureHeight, out nativeTexture));
+            CheckHR(Plugin.CreatePlaybackTexture(pluginInstance, this.textureWidth, this.textureHeight, out nativeTexture));
 
             // create the unity texture2d 
-            this.playbackTexture = Texture2D.CreateExternalTexture((int)this.TextureWidth, (int)this.TextureHeight, TextureFormat.BGRA32, false, false, nativeTexture);
+            this.playbackTexture = Texture2D.CreateExternalTexture((int)this.textureWidth, (int)this.textureHeight, TextureFormat.BGRA32, false, false, nativeTexture);
 
             // set texture for the shader
-            GetComponent<Renderer>().material.mainTexture = this.playbackTexture;
+            if (targetRendererRightOrBoth == null && targetRendererLeftOrBoth == null)
+                targetRendererRightOrBoth = GetComponent<Renderer>();
+
+            if (targetRendererRightOrBoth)
+                targetRendererRightOrBoth.material.mainTexture = this.playbackTexture;
+            if (targetRendererLeftOrBoth)
+                targetRendererLeftOrBoth.material.mainTexture = this.playbackTexture;
         }
 
         private void OnDisable()
@@ -264,7 +397,7 @@ namespace MediaPlayer
                 pluginInstance = IntPtr.Zero;
             }
 
-            if(thisObject.Target != null)
+            if (thisObject.Target != null)
             {
                 thisObject.Free();
                 thisObject.Target = null;
@@ -290,13 +423,33 @@ namespace MediaPlayer
 
 #if UNITY_WSA_10_0
             UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-        {
-            thisObject.OnStateChanged(args);
-        }, false);
+            {
+                thisObject.OnStateChanged(args);
+            }, false);
 #else
             thisObject.OnStateChanged(args);
 #endif
         }
+
+        private void TriggerPlaybackStateChangedEvent(ChangedEventArgs<PlaybackState> args)
+        {
+            if (this.PlaybackStateChanged != null)
+            {
+
+                try
+                {
+                    this.PlaybackStateChanged(this, args);
+                }
+                catch { }
+            }
+
+            if (autoAdjustMaterial && hasNewSize)
+            {
+                hasNewSize = false;
+                needMaterialUpdateAfterNewSize = true;
+            }
+        }
+
 
         private void OnStateChanged(Plugin.PLAYBACK_STATE args)
         {
@@ -306,15 +459,15 @@ namespace MediaPlayer
             {
                 case Plugin.StateType.StateType_None:
                     var newState0 = (PlaybackState)Enum.ToObject(typeof(PlaybackState), args.state);
-                    if(newState0 == PlaybackState.Ended || newState0 == PlaybackState.None)
+                    if (newState0 == PlaybackState.Ended || newState0 == PlaybackState.None)
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                     loaded = false;
                     break;
                 case Plugin.StateType.StateType_StateChanged:
                     var newState = (PlaybackState)Enum.ToObject(typeof(PlaybackState), args.state);
-                    if(newState == PlaybackState.None)
+                    if (newState == PlaybackState.None)
                     {
-                        if(State == PlaybackState.Playing || State == PlaybackState.Paused)
+                        if (State == PlaybackState.Playing || State == PlaybackState.Paused)
                         {
                             Debug.Log("Video ended");
                             newState = PlaybackState.Ended;
@@ -322,17 +475,19 @@ namespace MediaPlayer
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                         loaded = false;
                     }
-                    else if(newState == PlaybackState.Ended)
+                    else if (newState == PlaybackState.Ended)
                     {
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                         loaded = false;
                     }
-                    else if(newState != PlaybackState.Buffering && args.description.width != 0 && args.description.height != 0)
+                    else if (newState != PlaybackState.Buffering && args.description.width != 0 && args.description.height != 0)
                     {
                         currentMediaDescription.duration = args.description.duration;
                         currentMediaDescription.width = args.description.width;
                         currentMediaDescription.height = args.description.height;
                         currentMediaDescription.isSeekable = args.description.isSeekable;
+
+                        hasNewSize = true;
                     }
                     this.State = newState;
                     Debug.Log("Playback State: " + stateType.ToString() + " - " + this.State.ToString());
