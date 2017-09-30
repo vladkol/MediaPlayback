@@ -445,6 +445,8 @@ namespace MediaPlayer
             
             if(hasNewSize)
             {
+                hasNewSize = false;
+                
                 Material matLeft = null;
                 Material matRight = null;
 
@@ -461,12 +463,11 @@ namespace MediaPlayer
                 {
                     matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY));
                 }
-            }
-
-            if (autoAdjustMaterial && hasNewSize)
-            {
-                hasNewSize = false;
-                needMaterialUpdateAfterNewSize = true;
+            
+                if (autoAdjustMaterial)
+                {
+                    needMaterialUpdateAfterNewSize = true;
+                }
             }
         }
 
