@@ -21,6 +21,4 @@ namespace MediaPlayer
         }
     }
 
-    public delegate void ActionRef<T>(object sender, ref T item);
-
 }

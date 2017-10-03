@@ -33,9 +33,13 @@ namespace MediaPlayer
     public class Playback : MonoBehaviour
     {
         // state handling
-        public Action<object, ChangedEventArgs<PlaybackState>> PlaybackStateChanged;
-        public Action<object, long> PlaybackFailed;
-        public MediaPlayer.ActionRef<MediaPlayer.PlayReadyLicenseData> DRMLicenseRequested;
+        public delegate void PlaybackStateChangedHandler(object sender, ChangedEventArgs<PlaybackState> args);
+        public delegate void PlaybackFailedHandler (object sender, long hresult);
+        public delegate void DRMLicenseRequestedHandler(object sender, ref PlayReadyLicenseData item);
+
+        public event PlaybackStateChangedHandler PlaybackStateChanged;
+        public event PlaybackFailedHandler PlaybackFailed;
+        public event DRMLicenseRequestedHandler DRMLicenseRequested;
 
         public Renderer targetRendererLeftOrBoth = null;
         public Renderer targetRendererRightOrBoth = null;
@@ -51,13 +55,8 @@ namespace MediaPlayer
             {
                 if (this.playbackTexture != null)
                 {
-                    Debug.LogError("Cannot change texture size if playbackTexture is not null(already created).");
-#if UNITY_EDITOR || DEBUG
-                    throw new UnityException("Cannot change texture size if playbackTexture is not null (already created).");
-#else
-                    
+                    Debug.LogError("Cannot change texture size if playbackTexture is not null(already created). Use UpdateTexture(newWidth, newHeight).");
                     return;
-#endif
                 }
 
                 TextureWidth = value;
@@ -73,11 +72,8 @@ namespace MediaPlayer
             {
                 if (this.playbackTexture != null)
                 {
-#if UNITY_EDITOR || DEBUG
-                    throw new UnityException("Cannot change texture size if playbackTexture is not null (already created).");
-#else
+                    Debug.LogError("Cannot change texture size if playbackTexture is not null(already created). Use UpdateTexture(newWidth, newHeight).");
                     return;
-#endif
                 }
 
                 TextureHeight = value;
@@ -223,14 +219,56 @@ namespace MediaPlayer
 
             if (playbackTexture != null)
             {
-                byte[] dummyData = new byte[playbackTexture.width * playbackTexture.height * 4];
+                try
+                {
+                    byte[] dummyData = new byte[playbackTexture.width * playbackTexture.height * 4];
 
-                Texture2D dummyTex = new Texture2D(playbackTexture.width, playbackTexture.height, playbackTexture.format, false);
-                dummyTex.LoadRawTextureData(dummyData);
-                dummyTex.Apply();
-                Graphics.CopyTexture(dummyTex, playbackTexture);
-                Destroy(dummyTex);
+                    Texture2D dummyTex = new Texture2D(playbackTexture.width, playbackTexture.height, playbackTexture.format, false);
+                    dummyTex.LoadRawTextureData(dummyData);
+                    dummyTex.Apply();
+                    Graphics.CopyTexture(dummyTex, playbackTexture);
+                    Destroy(dummyTex);
+                }
+                catch { }
             }
+        }
+
+        public void UpdateTexture(uint newTextureWidth, uint newTextureHeight)
+        {
+            Texture2D oldTexture = playbackTexture;
+
+            TextureWidth = newTextureWidth;
+            TextureHeight = newTextureHeight;
+
+            // create native texture for playback
+            IntPtr nativeTexture = IntPtr.Zero;
+            CheckHR(Plugin.CreatePlaybackTexture(pluginInstance, this.textureWidth, this.textureHeight, out nativeTexture));
+
+            // create the unity texture2d 
+            this.playbackTexture = Texture2D.CreateExternalTexture((int)this.textureWidth, (int)this.textureHeight, TextureFormat.BGRA32, false, false, nativeTexture);
+
+            // set texture for the shader
+            if (targetRendererRightOrBoth == null && targetRendererLeftOrBoth == null)
+                targetRendererRightOrBoth = GetComponent<Renderer>();
+
+            if (targetRendererRightOrBoth)
+                targetRendererRightOrBoth.material.mainTexture = this.playbackTexture;
+            if (targetRendererLeftOrBoth)
+                targetRendererLeftOrBoth.material.mainTexture = this.playbackTexture;
+
+            if (oldTexture != null)
+            {
+                try
+                {
+                    Destroy(oldTexture);
+                }
+                catch { }
+            }
+        }
+
+        public void UpdateTexture()
+        {
+            UpdateTexture(this.textureWidth, this.textureHeight);
         }
 
 
@@ -363,21 +401,7 @@ namespace MediaPlayer
             // create media playback
             CheckHR(Plugin.CreateMediaPlayback(this.stateCallback, thisObjectPtr, out pluginInstance));
 
-            // create native texture for playback
-            IntPtr nativeTexture = IntPtr.Zero;
-            CheckHR(Plugin.CreatePlaybackTexture(pluginInstance, this.textureWidth, this.textureHeight, out nativeTexture));
-
-            // create the unity texture2d 
-            this.playbackTexture = Texture2D.CreateExternalTexture((int)this.textureWidth, (int)this.textureHeight, TextureFormat.BGRA32, false, false, nativeTexture);
-
-            // set texture for the shader
-            if (targetRendererRightOrBoth == null && targetRendererLeftOrBoth == null)
-                targetRendererRightOrBoth = GetComponent<Renderer>();
-
-            if (targetRendererRightOrBoth)
-                targetRendererRightOrBoth.material.mainTexture = this.playbackTexture;
-            if (targetRendererLeftOrBoth)
-                targetRendererLeftOrBoth.material.mainTexture = this.playbackTexture;
+            UpdateTexture();
         }
 
         private void OnDisable()
@@ -399,8 +423,22 @@ namespace MediaPlayer
 
             if (thisObject.Target != null)
             {
-                thisObject.Free();
-                thisObject.Target = null;
+                try
+                {
+                    thisObject.Free();
+                    thisObject.Target = null;
+                }
+                catch { }
+            }
+
+            if (playbackTexture != null)
+            {
+                try
+                {
+                    Destroy(playbackTexture);
+                    playbackTexture = null;
+                }
+                catch { }
             }
         }
 
