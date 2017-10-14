@@ -208,5 +208,7 @@ private:
     Microsoft::WRL::ComPtr<ABI::Windows::Graphics::DirectX::Direct3D11::IDirect3DSurface> m_primaryMediaSurface;
 
 	bool m_readyForFrames;
+	bool m_noHWDecoding;
+	bool m_make1080MaxWhenNoHWDecoding;
 };
 

@@ -75,6 +75,8 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
     , m_primaryMediaSurface(nullptr)
 	, m_bIgnoreEvents(false)
 	, m_readyForFrames(false)
+	, m_noHWDecoding(false)
+	, m_make1080MaxWhenNoHWDecoding(true)
 	, m_playreadyHandler(this, CMediaPlayerPlayback::LicenseRequestInternal)
 {
 }
@@ -135,6 +137,10 @@ HRESULT CMediaPlayerPlayback::RuntimeClassInitialize(
     m_fnStateCallback = fnCallback;
     m_d3dDevice.Attach(spDevice.Detach());
     m_mediaDevice.Attach(spMediaDevice.Detach());
+
+	Microsoft::WRL::ComPtr<ID3D11VideoDevice> videoDevice;
+	m_mediaDevice.As(&videoDevice);
+	m_noHWDecoding = (videoDevice == nullptr);
 
     return S_OK;
 }
