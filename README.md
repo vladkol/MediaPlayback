@@ -1,7 +1,5 @@
 # MediaPlayback
 
-HEVC URL replacement fix is driven by **LS_HEVC_FIX** preprocessor definition in **pch.h** 
-
 FFMPEG usage and dependencies are driven by **NO_FFMPEG** preprocessor definition in **pch.h** 
 
 If you want to build it with FFMPEG support, first you need to build ffmpeg with OpenSSL support using [vcpkg](https://github.com/Microsoft/vcpkg). 
