@@ -139,6 +139,13 @@ extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetMediaPlayer(_In
 	return spMediaPlayback->GetIUnknown(pIUnkForMediaPlayer);
 }
 
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API IsHWDecodingSupported(_In_ IMediaPlayerPlayback* spMediaPlayback, _Out_ BOOL* pSupportsHWVideoDecoding)
+{
+	NULL_CHK(spMediaPlayback);
+
+	return spMediaPlayback->IsHWDecodingSupported(pSupportsHWVideoDecoding);
+}
+
 
 extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API SetDRMLicense(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ LPCWSTR pszLicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData)
 {

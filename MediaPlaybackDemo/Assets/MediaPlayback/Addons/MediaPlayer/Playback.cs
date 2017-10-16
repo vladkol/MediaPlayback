@@ -401,6 +401,11 @@ namespace MediaPlayer
             // create media playback
             CheckHR(Plugin.CreateMediaPlayback(this.stateCallback, thisObjectPtr, out pluginInstance));
 
+            bool hwDecodingSupported = true;
+            Plugin.IsHWDecodingSupported(pluginInstance, out hwDecodingSupported);
+
+            Debug.LogFormat("MediaPlayback has been created. HW decoding is {0}.", hwDecodingSupported ? "supported" : "not supported");
+
             UpdateTexture();
         }
 
@@ -714,6 +719,9 @@ namespace MediaPlayer
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetVolume")]
             internal static extern long SetVolume(IntPtr pluginInstance, double volume);
+
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "IsHWDecodingSupported")]
+            internal static extern long IsHWDecodingSupported(IntPtr pluginInstance, out bool hwDecodingSupported);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetMediaPlayer")]
             internal static extern long GetMediaPlayer(IntPtr pluginInstance, out IntPtr ppvUnknown);

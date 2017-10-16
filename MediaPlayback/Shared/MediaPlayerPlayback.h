@@ -65,7 +65,7 @@ typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playba
 typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playback::MediaPlayer*, ABI::Windows::Media::Playback::MediaPlayerFailedEventArgs*> IFailedEventHandler;
 typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playback::MediaPlaybackSession*, IInspectable*> IMediaPlaybackSessionEventHandler;
 typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Streaming::Adaptive::AdaptiveMediaSource*, ABI::Windows::Media::Streaming::Adaptive::AdaptiveMediaSourceDownloadRequestedEventArgs*> IDownloadRequestedEventHandler;
-
+typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playback::MediaPlaybackItem*, ABI::Windows::Foundation::Collections::IVectorChangedEventArgs*> ITracksChangedEventHandler;
 
 DECLARE_INTERFACE_IID_(IMediaPlayerPlayback, IUnknown, "9669c78e-42c4-4178-a1e3-75b03d0f8c9a")
 {
@@ -78,6 +78,7 @@ DECLARE_INTERFACE_IID_(IMediaPlayerPlayback, IUnknown, "9669c78e-42c4-4178-a1e3-
 	STDMETHOD(Seek)(_In_ LONGLONG position) PURE;
 	STDMETHOD(SetVolume)(_In_ DOUBLE volume) PURE;
 	STDMETHOD(GetIUnknown)(_Out_ IUnknown** ppUnknown) PURE;
+	STDMETHOD(IsHWDecodingSupported)(_Out_ BOOL* pSupportsHWVideoDecoding) PURE;
 	STDMETHOD(SetDRMLicense)(_In_ LPCWSTR pszlicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData) PURE;
 	STDMETHOD(SetDRMLicenseCallback)(_In_ DRMLicenseRequestedCallback fnCallback) PURE;
 };
@@ -123,6 +124,8 @@ public:
 	IFACEMETHOD(SetVolume)(_In_ DOUBLE volume);
 
 	IFACEMETHOD(GetIUnknown)(_Out_ IUnknown** ppUnknown);
+	IFACEMETHOD(IsHWDecodingSupported)(_Out_ BOOL* pSupportsHWVideoDecoding);
+
 	IFACEMETHOD(SetDRMLicense)(_In_ LPCWSTR pszlicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData);
 	IFACEMETHOD(SetDRMLicenseCallback)(_In_ DRMLicenseRequestedCallback fnCallback);
 
@@ -151,6 +154,8 @@ protected:
 	HRESULT OnDownloadRequested(
 		_In_ ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource* sender,
 		_In_ ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSourceDownloadRequestedEventArgs* args);
+
+	HRESULT OnVideoTracksChanged(ABI::Windows::Media::Playback::IMediaPlaybackItem* pItem, ABI::Windows::Foundation::Collections::IVectorChangedEventArgs* pArgs);
 
 	static void LicenseRequestInternal(void* objectThisPtr, Microsoft::WRL::Wrappers::HString& licenseUriResult, Microsoft::WRL::Wrappers::HString& licenseCustomChallendgeDataResult);
 
@@ -182,6 +187,7 @@ private:
     EventRegistrationToken m_failedEventToken;
     EventRegistrationToken m_videoFrameAvailableToken;
 	EventRegistrationToken m_downloadRequestedEventToken;
+	EventRegistrationToken m_videoTracksChangedEventToken;
 
 	bool m_bIgnoreEvents;
 	PlayReadyHandler m_playreadyHandler;
@@ -193,6 +199,7 @@ private:
 #endif
 
 	Microsoft::WRL::ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource> m_spAdaptiveMediaSource;
+	Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackItem> m_spPlaybackItem;
 
     Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackSession> m_mediaPlaybackSession;
     EventRegistrationToken m_stateChangedEventToken;

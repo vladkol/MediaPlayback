@@ -217,10 +217,12 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 		{
 			OutputDebugStringW(L"We have an Adaptive Streaming media source!\n");
 
-			//Here we make sure that we start at the highest available bitrate. Remove this piece if you don't want to override the default behaviour 
+			// Here we make sure that we start at the highest available bitrate. 
+			// If hardware video decoding is not supported, we don't change anything. 
+			// Remove this piece if you don't want to override the default behaviour. 
 			Microsoft::WRL::ComPtr<ABI::Windows::Foundation::Collections::IVectorView<UINT32>> spAvailableBitrates;
 			m_spAdaptiveMediaSource->get_AvailableBitrates(&spAvailableBitrates);
-			if (spAvailableBitrates.Get() != nullptr)
+			if (!m_noHWDecoding && spAvailableBitrates.Get() != nullptr)
 			{
 				unsigned int size = 0;
 				spAvailableBitrates->get_Size(&size);
@@ -253,11 +255,13 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 		}
 	}
 
-    ComPtr<IMediaPlaybackItem> spPlaybackItem;
-    IFR(CreateMediaPlaybackItem(spMediaSource2.Get(), &spPlaybackItem));
+    IFR(CreateMediaPlaybackItem(spMediaSource2.Get(), m_spPlaybackItem.ReleaseAndGetAddressOf()));
+
+	auto videoTracksChangedHandler = Microsoft::WRL::Callback<ITracksChangedEventHandler>(this, &CMediaPlayerPlayback::OnVideoTracksChanged);
+	m_spPlaybackItem->add_VideoTracksChanged(videoTracksChangedHandler.Get(), &m_videoTracksChangedEventToken);
 
     ComPtr<IMediaPlaybackSource> spMediaPlaybackSource;
-    IFR(spPlaybackItem.As(&spMediaPlaybackSource));
+    IFR(m_spPlaybackItem.As(&spMediaPlaybackSource));
 
 	// Set ProtectionManager for MediaPlayer 
 	IFR(InitializeMediaPlayerWithPlayReadyDRM());
@@ -321,6 +325,13 @@ HRESULT CMediaPlayerPlayback::Stop()
 			LOG_RESULT(m_spAdaptiveMediaSource->remove_DownloadRequested(m_downloadRequestedEventToken));
 			m_spAdaptiveMediaSource.Reset();
 			m_spAdaptiveMediaSource = nullptr;
+		}
+
+		if (m_spPlaybackItem != nullptr)
+		{
+			LOG_RESULT(m_spPlaybackItem->remove_VideoTracksChanged(m_videoTracksChangedEventToken));
+			m_spPlaybackItem.Reset();
+			m_spPlaybackItem = nullptr;
 		}
 
         IFR(spMediaPlayerSource->put_Source(nullptr));
@@ -441,6 +452,23 @@ HRESULT CMediaPlayerPlayback::GetIUnknown(IUnknown** ppUnknown)
 
 
 _Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::IsHWDecodingSupported(_Out_ BOOL* pSupportsHWVideoDecoding)
+{
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::IsHWDecodingSupported()");
+
+	if (!m_mediaDevice)
+		return E_UNEXPECTED;
+
+	if (!pSupportsHWVideoDecoding)
+		return E_INVALIDARG;
+
+	*pSupportsHWVideoDecoding = m_noHWDecoding ? FALSE : TRUE;
+
+	return S_OK;
+}
+
+
+_Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::SetDRMLicense(_In_ LPCWSTR pszlicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData)
 {
 	Log(Log_Level_Info, L"CMediaPlayerPlayback::SetDRMLicense()");
@@ -551,6 +579,13 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
             spMediaPlayer5.Reset();
             spMediaPlayer5 = nullptr;
         }
+
+		if (m_spPlaybackItem != nullptr)
+		{
+			LOG_RESULT(m_spPlaybackItem->remove_VideoTracksChanged(m_videoTracksChangedEventToken));
+			m_spPlaybackItem.Reset();
+			m_spPlaybackItem = nullptr;
+		}
 
         LOG_RESULT(m_mediaPlayer->remove_MediaOpened(m_openedEventToken));
         LOG_RESULT(m_mediaPlayer->remove_MediaEnded(m_endedEventToken));
@@ -931,44 +966,85 @@ HRESULT CMediaPlayerPlayback::OnDownloadRequested(ABI::Windows::Media::Streaming
 	ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSourceDownloadRequestedDeferral> deferral;
 	args->GetDeferral(&deferral);
 
-#ifdef LS_HEVC_FIX
-	ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSourceDownloadResult> result;
-	ComPtr<ABI::Windows::Foundation::IUriRuntimeClass> uri;
+	deferral->Complete();
 
-	if(args->get_Result(&result) == S_OK && args->get_ResourceUri(&uri) == S_OK && uri.Get() != nullptr)
+	return S_OK;
+}
+
+
+HRESULT CMediaPlayerPlayback::OnVideoTracksChanged(IMediaPlaybackItem* pItem, ABI::Windows::Foundation::Collections::IVectorChangedEventArgs* pArgs)
+{
+	if (false == m_noHWDecoding || false == m_make1080MaxWhenNoHWDecoding)
+		return S_OK;
+
+	Log(Log_Level_Info, L"Hardware decoding is not supported. Selecting to find a 1080 track if found.");
+
+	ComPtr<ABI::Windows::Foundation::Collections::IVectorView<VideoTrack*>> spVideoTracks;
+	ComPtr<ABI::Windows::Media::Core::ISingleSelectMediaTrackList> spTrackList;
+
+	if (SUCCEEDED(pItem->get_VideoTracks(&spVideoTracks)) && SUCCEEDED(spVideoTracks.As(&spTrackList)) )
 	{
-		OutputDebugStringW(L"Processing resource URI...\n");
-		
-		Microsoft::WRL::Wrappers::HString uriString;
-		uri->get_RawUri(uriString.GetAddressOf());
-		
-		if (uriString.Get() != nullptr)
+		ComPtr<ABI::Windows::Media::Core::IMediaTrack> track;
+		ComPtr<ABI::Windows::Media::Core::IVideoTrack> vtrack;
+		ComPtr<ABI::Windows::Media::MediaProperties::IVideoEncodingProperties> props;
+
+		bool selectedATrack = false;
+		INT32 selected = 0;
+		unsigned int size = 0;
+		unsigned int width = 0;
+		unsigned int height = 0;
+
+		spVideoTracks->get_Size(&size);
+
+		spTrackList->get_SelectedIndex(&selected);
+		if (selected >= 0)
 		{
-			std::wstring wuri = L"";
-			wuri = uriString.GetRawBuffer(nullptr);
+			spVideoTracks->GetAt((unsigned int)selected, track.ReleaseAndGetAddressOf());
+			track.As(&vtrack);
 
-			OutputDebugStringW(wuri.data());
+			vtrack->GetEncodingProperties(props.ReleaseAndGetAddressOf());
+			
+			props->get_Width(&width);
+			props->get_Height(&height);
 
-			replaceAll(wuri, L".libx265.", L".libx264.");
-			replaceAll(wuri, L".hevc_nvenc.", L".h264_nvenc.");
-
-			OutputDebugStringW(L"\n");
-
-			Microsoft::WRL::Wrappers::HStringReference uriNewString(wuri.data());
-			ComPtr<ABI::Windows::Foundation::IUriRuntimeClass> uriNew;
-			ComPtr<ABI::Windows::Foundation::IUriRuntimeClassFactory> uriFactory;
-
-			ABI::Windows::Foundation::GetActivationFactory(Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Foundation_Uri).Get(), &uriFactory);
-			uriFactory->CreateUri(uriNewString.Get(), &uriNew);
-
-			result->put_ResourceUri(uriNew.Get());
-			OutputDebugStringW(L"Resource URI processed\n");
+			if (height <= 1080)
+			{
+				return S_OK;
+			}
 		}
 
-	}
-#endif
+		unsigned int maxLessThan1080Index = -1;
+		unsigned int maxLessThan1080Res = -1;
 
-	deferral->Complete();
+		for (unsigned int i = 0; i < size; i++)
+		{
+			vtrack = nullptr;
+			spVideoTracks->GetAt(i, track.ReleaseAndGetAddressOf());
+			track.As(&vtrack);
+
+			vtrack->GetEncodingProperties(props.ReleaseAndGetAddressOf());
+
+			props->get_Width(&width);
+			props->get_Height(&height);
+
+			if (height < 1080 && height > maxLessThan1080Res)
+			{
+				maxLessThan1080Res = height;
+				maxLessThan1080Index = i;
+			}
+			else if (height == 1080)
+			{
+				spTrackList->put_SelectedIndex((INT32)i);
+				selectedATrack = true;
+				break;
+			}
+		}
+
+		if (!selectedATrack && maxLessThan1080Index != -1)
+		{
+			spTrackList->put_SelectedIndex(maxLessThan1080Index);
+		}
+	}
 
 	return S_OK;
 }
