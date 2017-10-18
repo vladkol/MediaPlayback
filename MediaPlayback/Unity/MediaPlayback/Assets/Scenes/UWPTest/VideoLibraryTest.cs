@@ -40,10 +40,17 @@ public class VideoLibraryTest : MonoBehaviour
             StorageApplicationPermissions.FutureAccessList.AddOrReplace(token, file);
 
             runner.mediaURI = "file-access:///" + token;
-            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            if (!UnityEngine.WSA.Application.RunningOnAppThread())
+            {
+                UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                {
+                    runner.Play();
+                }, false);
+            }
+            else
             {
                 runner.Play();
-            }, false);
+            }
         }
     }
 #endif

@@ -107,11 +107,18 @@ namespace MediaPlayer
                     var args = new ChangedEventArgs<PlaybackState>(this.previousState, this.currentState);
 
 #if UNITY_WSA_10_0
-                    UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                    if (!UnityEngine.WSA.Application.RunningOnAppThread())
+                    {
+                        UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                        {
+                            TriggerPlaybackStateChangedEvent(args);
+
+                        }, false);
+                    }
+                    else
                     {
                         TriggerPlaybackStateChangedEvent(args);
-
-                    }, false);
+                    }
 #else
                     TriggerPlaybackStateChangedEvent(args);
 #endif
