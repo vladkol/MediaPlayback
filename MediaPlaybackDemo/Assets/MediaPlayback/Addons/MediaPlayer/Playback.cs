@@ -274,11 +274,39 @@ namespace MediaPlayer
                 }
                 catch { }
             }
+
+            UpdateMaterial();
         }
 
         public void UpdateTexture()
         {
             UpdateTexture(this.textureWidth, this.textureHeight);
+        }
+
+
+        public void UpdateMaterial()
+        {
+            Material matLeft = null;
+            Material matRight = null;
+
+            if (targetRendererLeftOrBoth != null)
+                matLeft = targetRendererLeftOrBoth.material;
+            if (targetRendererRightOrBoth != null)
+                matRight = targetRendererRightOrBoth.material;
+
+            if (matLeft != null)
+            {
+                matLeft.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY));
+            }
+            if (matRight != null)
+            {
+                matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY));
+            }
+
+            if (autoAdjustMaterial)
+            {
+                needMaterialUpdateAfterNewSize = true;
+            }
         }
 
 
@@ -498,28 +526,8 @@ namespace MediaPlayer
             if(hasNewSize)
             {
                 hasNewSize = false;
-                
-                Material matLeft = null;
-                Material matRight = null;
 
-                if (targetRendererLeftOrBoth != null)
-                    matLeft = targetRendererLeftOrBoth.material;
-                if (targetRendererRightOrBoth != null)
-                    matRight = targetRendererRightOrBoth.material;
-                    
-                if (matLeft != null)
-                {
-                    matLeft.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY));
-                }
-                if (matRight != null)
-                {
-                    matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY));
-                }
-            
-                if (autoAdjustMaterial)
-                {
-                    needMaterialUpdateAfterNewSize = true;
-                }
+                UpdateMaterial();
             }
         }
 
