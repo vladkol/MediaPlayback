@@ -7,9 +7,15 @@ using namespace Microsoft::WRL::Wrappers;
 
 HRESULT PlayReadyHandler::InitalizeProtectionManager()
 {
+	if (m_initialized && m_spProtectionManager.Get() != nullptr)
+		return S_OK;
+
 	Log(Log_Level_Info, L"PlayReadyHandler::InitalizeProtectionManager");
 
-	IFR(ABI::Windows::Foundation::ActivateInstance(Wrappers::HStringReference(RuntimeClass_Windows_Media_Protection_MediaProtectionManager).Get(), &m_spProtectionManager));
+	m_initialized = false;
+
+	IFR(ABI::Windows::Foundation::ActivateInstance(Wrappers::HStringReference(RuntimeClass_Windows_Media_Protection_MediaProtectionManager).Get(), 
+		m_spProtectionManager.ReleaseAndGetAddressOf()));
 
 	auto serviceRequested = Microsoft::WRL::Callback<IServiceRequestedEventHandler>(this, &PlayReadyHandler::OnProtectionManager_ServiceRequested);
 	auto componentLoadFailed = Microsoft::WRL::Callback<IComponentLoadFailedEventHandler>(this, &PlayReadyHandler::OnProtectionManager_ComponentLoadFailed);
@@ -27,8 +33,8 @@ HRESULT PlayReadyHandler::InitalizeProtectionManager()
 	IFR(ActivateInstance(HStringReference(RuntimeClass_Windows_Foundation_Collections_PropertySet).Get(), &spPropertySet));
 	IFR(spPropertySet.As(&spMap));
 
-	IFR(AddStringProperty(spMap.Get(), L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}", L"Microsoft.Media.PlayReadyClient.PlayReadyWinRTTrustedInput"));
-	IFR(AddStringProperty(spMap.Get(), L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}", L"Windows.Media.Protection.PlayReady.PlayReadyWinRTTrustedInput"));
+	AddStringProperty(spMap.Get(), L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}", L"Microsoft.Media.PlayReadyClient.PlayReadyWinRTTrustedInput");
+    AddStringProperty(spMap.Get(), L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}", L"Windows.Media.Protection.PlayReady.PlayReadyWinRTTrustedInput");
 
 	ComPtr<IPropertySet> spPMPropertySet;
 	ComPtr<IMap<HSTRING, IInspectable*>> spPMPropertySetMap;
@@ -36,11 +42,12 @@ HRESULT PlayReadyHandler::InitalizeProtectionManager()
 	IFR(spPMPropertySet.As(&spPMPropertySetMap));
 
 	boolean replaced;
-	IFR(spPMPropertySetMap->Insert(HStringReference(L"Windows.Media.Protection.MediaProtectionSystemIdMapping").Get(),
-		spPropertySet.Get(), &replaced));
-	IFR(AddStringProperty(spPMPropertySetMap.Get(), L"Windows.Media.Protection.MediaProtectionSystemId", L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}"));
-	IFR(AddStringProperty(spPMPropertySetMap.Get(), L"Windows.Media.Protection.MediaProtectionContainerGuid", L"{9A04F079-9840-4286-AB92-E65BE0885F95}"));
-	IFR(AddBooleanProperty(spPMPropertySetMap.Get(), L"Windows.Media.Protection.UseSoftwareProtectionLayer", true));
+	spPMPropertySetMap->Insert(HStringReference(L"Windows.Media.Protection.MediaProtectionSystemIdMapping").Get(),
+		spPropertySet.Get(), &replaced);
+
+	AddStringProperty(spPMPropertySetMap.Get(), L"Windows.Media.Protection.MediaProtectionSystemId", L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}");
+	AddStringProperty(spPMPropertySetMap.Get(), L"Windows.Media.Protection.MediaProtectionContainerGuid", L"{9A04F079-9840-4286-AB92-E65BE0885F95}");
+	AddBooleanProperty(spPMPropertySetMap.Get(), L"Windows.Media.Protection.UseSoftwareProtectionLayer", true);
 	
 	ComPtr<IPropertySet> spPMPPropertySet;
 	ComPtr<IMap<HSTRING, IInspectable*>> spPMPMap;
@@ -48,13 +55,15 @@ HRESULT PlayReadyHandler::InitalizeProtectionManager()
 	
 	Windows::Foundation::ActivateInstance(Wrappers::HStringReference(RuntimeClass_Windows_Foundation_Collections_PropertySet).Get(), &spPMPPropertySet);
 	IFR(spPMPPropertySet.As(&spPMPMap));
-	IFR(AddStringProperty(spPMPMap.Get(), L"Windows.Media.Protection.MediaProtectionSystemId", L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}"));
-	IFR(AddBooleanProperty(spPMPMap.Get(), L"Windows.Media.Protection.UseSoftwareProtectionLayer", true));
+	AddStringProperty(spPMPMap.Get(), L"Windows.Media.Protection.MediaProtectionSystemId", L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}");
+	AddBooleanProperty(spPMPMap.Get(), L"Windows.Media.Protection.UseSoftwareProtectionLayer", true);
 
-	IFR(ABI::Windows::Foundation::GetActivationFactory(Wrappers::HStringReference(RuntimeClass_Windows_Media_Protection_MediaProtectionPMPServer).Get(), &spPMPServerFactory));
+	ABI::Windows::Foundation::GetActivationFactory(Wrappers::HStringReference(RuntimeClass_Windows_Media_Protection_MediaProtectionPMPServer).Get(), &spPMPServerFactory);
 	IFR(spPMPServerFactory->CreatePMPServer(spPMPPropertySet.Get(), &m_spPMPServer));
 
-	IFR(spPMPropertySetMap->Insert(HStringReference(L"Windows.Media.Protection.MediaProtectionPMPServer").Get(), m_spPMPServer.Get(), &replaced));
+	spPMPropertySetMap->Insert(HStringReference(L"Windows.Media.Protection.MediaProtectionPMPServer").Get(), m_spPMPServer.Get(), &replaced);
+
+	m_initialized = true;
 
 	return S_OK;
 }
@@ -67,9 +76,9 @@ HRESULT PlayReadyHandler::OnProtectionManager_ServiceRequested(IMediaProtectionM
 	WCHAR buff[40] = { 0 };
 
 	ComPtr<IMediaProtectionServiceRequest> spSvrRequest;
-	IFR(srEvent->get_Request(&spSvrRequest));
+	srEvent->get_Request(&spSvrRequest);
 
-	if (SUCCEEDED(spSvrRequest->get_Type(&aux)))
+	if (spSvrRequest && SUCCEEDED(spSvrRequest->get_Type(&aux)))
 	{
 		if (StringFromGUID2(aux, buff, 40))
 		{

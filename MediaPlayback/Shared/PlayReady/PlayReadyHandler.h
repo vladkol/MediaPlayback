@@ -22,6 +22,7 @@ public:
 	PlayReadyHandler(void* objectThis, DRMLicenseRequestedCallbackInternal fnCallback) : 
 				  m_licenseCallback(fnCallback)
 				, m_objectThis(objectThis)
+				, m_initialized(false)
 	{
 		assert(fnCallback);
 		assert(objectThis);
@@ -64,7 +65,7 @@ public:
 
 	ComPtr<IMediaProtectionManager>& GetProtectionManager()
 	{
-		if (m_spProtectionManager == nullptr)
+		if (m_spProtectionManager == nullptr || !m_initialized)
 			InitalizeProtectionManager();
 
 		return m_spProtectionManager;
@@ -91,4 +92,5 @@ private:
 	EventRegistrationToken m_componentLoadFailedToken;
 	DRMLicenseRequestedCallbackInternal m_licenseCallback;
 	void* m_objectThis;
+	bool m_initialized;
 };

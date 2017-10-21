@@ -84,9 +84,12 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
 _Use_decl_annotations_
 CMediaPlayerPlayback::~CMediaPlayerPlayback()
 {
-    ReleaseTextures();
+	m_readyForFrames = false;
+	m_bIgnoreEvents = true;
 
-    ReleaseMediaPlayer();
+	ReleaseMediaPlayer();
+	
+	ReleaseTextures();
 
     MFUnlockDXGIDeviceManager();
 
@@ -189,6 +192,23 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 {
     Log(Log_Level_Info, L"CMediaPlayerPlayback::LoadContent()");
 
+	if (m_mediaPlayer.Get() == nullptr)
+	{
+		return E_UNEXPECTED;
+	}
+
+	// Check if MediaPlayer now has a source (Stop was not called). 
+	// If so, call stop. It will recreate and reinitialize MediaPlayer (m_mediaPlayer) 
+	ComPtr<IMediaPlayerSource2> spPlayerAsMediaPlayerSource;
+	ComPtr<IMediaPlaybackSource> spCurrentSource;
+	IFR(m_mediaPlayer.As(&spPlayerAsMediaPlayerSource));
+	spPlayerAsMediaPlayerSource->get_Source(&spCurrentSource);
+
+	if (spCurrentSource.Get())
+	{
+		IFR(Stop());
+	}
+
     // create the media source for content (fromUri)
     ComPtr<IMediaSource2> spMediaSource2;
     if (useFFmpeg)
@@ -266,9 +286,7 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 	// Set ProtectionManager for MediaPlayer 
 	IFR(InitializeMediaPlayerWithPlayReadyDRM());
 
-    ComPtr<IMediaPlayerSource2> spMediaPlayerSource;
-    IFR(m_mediaPlayer.As(&spMediaPlayerSource));
-    IFR(spMediaPlayerSource->put_Source(spMediaPlaybackSource.Get()));
+    IFR(spPlayerAsMediaPlayerSource->put_Source(spMediaPlaybackSource.Get()));
 
     return S_OK;
 }
@@ -313,12 +331,20 @@ HRESULT CMediaPlayerPlayback::Stop()
 {
     Log(Log_Level_Info, L"CMediaPlayerPlayback::Stop()");
 
-    if (nullptr != m_mediaPlayer)
+	bool fireStateChange = false;
+	m_bIgnoreEvents = true;
+	
+	if (nullptr != m_mediaPlayer)
     {
-        ComPtr<IMediaPlayerSource2> spMediaPlayerSource;
-        IFR(m_mediaPlayer.As(&spMediaPlayerSource));
+		fireStateChange = true;
 
-		m_bIgnoreEvents = true;
+        ComPtr<IMediaPlayerSource2> spMediaPlayerSource;
+        m_mediaPlayer.As(&spMediaPlayerSource);
+
+		if (spMediaPlayerSource != nullptr)
+		{
+			spMediaPlayerSource->put_Source(nullptr);
+		}
 
 		if (m_spAdaptiveMediaSource.Get() != nullptr)
 		{
@@ -333,13 +359,26 @@ HRESULT CMediaPlayerPlayback::Stop()
 			m_spPlaybackItem.Reset();
 			m_spPlaybackItem = nullptr;
 		}
-
-        IFR(spMediaPlayerSource->put_Source(nullptr));
-
-		m_bIgnoreEvents = false;
     }
 
-    return S_OK;
+	ReleaseMediaPlayer();
+
+	HRESULT hr = CreateMediaPlayer();
+
+	if (fireStateChange)
+	{
+		PLAYBACK_STATE playbackState;
+		ZeroMemory(&playbackState, sizeof(playbackState));
+		playbackState.type = StateType::StateType_StateChanged;
+		playbackState.state = PlaybackState::PlaybackState_None;
+
+		if (m_fnStateCallback != nullptr)
+			m_fnStateCallback(m_pClientObject, playbackState);
+	}
+
+	m_bIgnoreEvents = false;
+
+	return hr;
 }
 
 _Use_decl_annotations_
@@ -544,6 +583,8 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayer()
     IFR(spMediaPlayer5->add_VideoFrameAvailable(videoFrameAvailableCallback.Get(), &videoFrameAvailableToken));
 
     // store the player and token
+	m_mediaPlayer = nullptr;
+
     m_mediaPlayer.Attach(spMediaPlayer.Detach());
     m_openedEventToken = openedEventToken;
     m_endedEventToken = endedEventToken;
@@ -592,7 +633,10 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
         LOG_RESULT(m_mediaPlayer->remove_MediaFailed(m_failedEventToken));
 
         // stop playback
-        LOG_RESULT(Stop());
+		ComPtr<IMediaPlayerSource2> spMediaPlayerSource;
+		m_mediaPlayer.As(&spMediaPlayerSource);
+		if(spMediaPlayerSource != nullptr)
+			spMediaPlayerSource->put_Source(nullptr);
 
         m_mediaPlayer.Reset();
         m_mediaPlayer = nullptr;
@@ -974,7 +1018,7 @@ HRESULT CMediaPlayerPlayback::OnDownloadRequested(ABI::Windows::Media::Streaming
 
 HRESULT CMediaPlayerPlayback::OnVideoTracksChanged(IMediaPlaybackItem* pItem, ABI::Windows::Foundation::Collections::IVectorChangedEventArgs* pArgs)
 {
-	if (false == m_noHWDecoding || false == m_make1080MaxWhenNoHWDecoding)
+	if (false == m_noHWDecoding || false == m_make1080MaxWhenNoHWDecoding || m_bIgnoreEvents)
 		return S_OK;
 
 	Log(Log_Level_Info, L"Hardware decoding is not supported. Selecting to find a 1080 track if found.");
