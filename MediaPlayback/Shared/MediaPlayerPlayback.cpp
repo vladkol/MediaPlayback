@@ -756,8 +756,6 @@ void CMediaPlayerPlayback::ReleaseTextures()
 
     m_primaryTexture.Reset();
     m_primaryTexture = nullptr;
-
-    ZeroMemory(&m_textureDesc, sizeof(m_textureDesc));
 }
 
 _Use_decl_annotations_
