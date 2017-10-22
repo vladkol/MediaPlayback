@@ -369,7 +369,7 @@ HRESULT CMediaPlayerPlayback::Stop()
 	{
 		PLAYBACK_STATE playbackState;
 		ZeroMemory(&playbackState, sizeof(playbackState));
-		playbackState.type = StateType::StateType_StateChanged;
+		playbackState.type = StateType::StateType_None;
 		playbackState.state = PlaybackState::PlaybackState_None;
 
 		if (m_fnStateCallback != nullptr)
