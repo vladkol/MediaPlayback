@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.27004.2002
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UWP", "UWP\UWP.vcxproj", "{4A859119-6730-4612-987F-DABF98F213ED}"
 EndProject
@@ -15,7 +15,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MediaPlayer", "MediaPlayer", "{12A77DDC-29AA-4485-8AFB-43D59B12370E}"
 	ProjectSection(SolutionItems) = preProject
 		Unity\MediaPlayback\Assets\Addons\MediaPlayer\MediaItemsUI.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\MediaItemsUI.cs
+		Unity\MediaPlayback\Assets\Addons\MediaPlayer\MediaPlaybackRunner.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\MediaPlaybackRunner.cs
 		Unity\MediaPlayback\Assets\Addons\MediaPlayer\Playback.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\Playback.cs
+		Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayerSubtitles.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayerSubtitles.cs
+		Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayerTime.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayerTime.cs
 		Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayReadyLicenseHandler.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayReadyLicenseHandler.cs
 		Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayReadyUtils.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\PlayReadyUtils.cs
 		Unity\MediaPlayback\Assets\Addons\MediaPlayer\States.cs = Unity\MediaPlayback\Assets\Addons\MediaPlayer\States.cs
@@ -64,5 +67,8 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{12A77DDC-29AA-4485-8AFB-43D59B12370E} = {880F0E63-8845-4579-B883-A77D1B4AF986}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1F19A78E-EF9B-4FEF-BF32-7ECC211B5B5D}
 	EndGlobalSection
 EndGlobal

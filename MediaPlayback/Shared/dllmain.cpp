@@ -163,6 +163,36 @@ extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API SetDRMLicenseCallb
 }
 
 
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API SetSubtitlesCallbacks(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ SubtitleItemEnteredCallback fnEnteredCallback, _In_ SubtitleItemExitedCallback fnExitedCallback)
+{
+	NULL_CHK(spMediaPlayback);
+
+	return spMediaPlayback->SetSubtitlesCallbacks(fnEnteredCallback, fnExitedCallback);
+}
+
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetSubtitlesTracksCount(_In_ IMediaPlayerPlayback* spMediaPlayback, _Out_ unsigned int* count)
+{
+	NULL_CHK(spMediaPlayback);
+	NULL_CHK(count);
+
+	return spMediaPlayback->GetSubtitlesTrackCount(count);
+}
+
+
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetSubtitlesTrack(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ unsigned int index, _Out_ const wchar_t** trackId, _Out_ const wchar_t** trackLabel, _Out_ const wchar_t** trackLanguage)
+{
+	NULL_CHK(spMediaPlayback);
+
+	unsigned int count = 0;
+	spMediaPlayback->GetSubtitlesTrackCount(&count);
+	if (index >= count)
+	{
+		return E_INVALIDARG;
+	}
+
+	return spMediaPlayback->GetSubtitlesTrack(index, trackId, trackLabel, trackLanguage);
+}
+
 // --------------------------------------------------------------------------
 // UnitySetInterfaces
 

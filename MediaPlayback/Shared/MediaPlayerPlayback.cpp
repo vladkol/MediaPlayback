@@ -46,7 +46,7 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayback(
         NULL_CHK_HR(d3d, E_INVALIDARG);
 
         ComPtr<CMediaPlayerPlayback> spMediaPlayback(nullptr);
-        IFR(MakeAndInitialize<CMediaPlayerPlayback>(&spMediaPlayback, fnCallback, pClientObject,d3d->GetDevice()));
+        IFR(MakeAndInitialize<CMediaPlayerPlayback>(&spMediaPlayback, fnCallback, pClientObject, d3d));
 
         *ppMediaPlayback = spMediaPlayback.Detach();
     }
@@ -101,52 +101,64 @@ _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::RuntimeClassInitialize(
     StateChangedCallback fnCallback, 
 	void* pClientObject, 
-    ID3D11Device* pDevice)
+	IUnityGraphicsD3D11* pUnityDevice)
 {
     Log(Log_Level_Info, L"CMediaPlayerPlayback::RuntimeClassInitialize()");
 
     NULL_CHK(fnCallback);
-    NULL_CHK(pDevice);
+    NULL_CHK(pUnityDevice);
 
+	m_pUnityGraphics = pUnityDevice;
 	m_pClientObject = pClientObject;
+	m_fnStateCallback = fnCallback;
 
-    // ref count passed in device
-    ComPtr<ID3D11Device> spDevice(pDevice);
+    return InitializeDevices();
+}
 
-    // make sure creation of the device is on the same adapter
-    ComPtr<IDXGIDevice> spDXGIDevice;
-    IFR(spDevice.As(&spDXGIDevice));
-    
-    ComPtr<IDXGIAdapter> spAdapter;
-    IFR(spDXGIDevice->GetAdapter(&spAdapter));
 
-    // create dx device for media pipeline
-    ComPtr<ID3D11Device> spMediaDevice;
-    IFR(CreateMediaDevice(spAdapter.Get(), &spMediaDevice));
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::InitializeDevices()
+{
+	m_d3dDevice = nullptr;
+	m_mediaDevice = nullptr;
 
-    // lock the shared dxgi device manager
-    // will keep lock open for the life of object
-    //     call MFUnlockDXGIDeviceManager when unloading
-    UINT uiResetToken;
-    ComPtr<IMFDXGIDeviceManager> spDeviceManager;
-    IFR(MFLockDXGIDeviceManager(&uiResetToken, &spDeviceManager));
+	// ref count passed in device
+	ComPtr<ID3D11Device> spDevice(m_pUnityGraphics->GetDevice());
 
-    // associtate the device with the manager
-    IFR(spDeviceManager->ResetDevice(spMediaDevice.Get(), uiResetToken));
+	// make sure creation of the device is on the same adapter
+	ComPtr<IDXGIDevice> spDXGIDevice;
+	IFR(spDevice.As(&spDXGIDevice));
 
-    // create media player object
-    IFR(CreateMediaPlayer());
+	ComPtr<IDXGIAdapter> spAdapter;
+	IFR(spDXGIDevice->GetAdapter(&spAdapter));
 
-    m_fnStateCallback = fnCallback;
-    m_d3dDevice.Attach(spDevice.Detach());
-    m_mediaDevice.Attach(spMediaDevice.Detach());
+	// create dx device for media pipeline
+	ComPtr<ID3D11Device> spMediaDevice;
+	IFR(CreateMediaDevice(spAdapter.Get(), &spMediaDevice));
+
+	// lock the shared dxgi device manager
+	// will keep lock open for the life of object
+	//     call MFUnlockDXGIDeviceManager when unloading
+	UINT uiResetToken;
+	ComPtr<IMFDXGIDeviceManager> spDeviceManager;
+	IFR(MFLockDXGIDeviceManager(&uiResetToken, &spDeviceManager));
+
+	// associtate the device with the manager
+	IFR(spDeviceManager->ResetDevice(spMediaDevice.Get(), uiResetToken));
+
+	// create media player object
+	IFR(CreateMediaPlayer());
+
+	m_d3dDevice.Attach(spDevice.Detach());
+	m_mediaDevice.Attach(spMediaDevice.Detach());
 
 	Microsoft::WRL::ComPtr<ID3D11VideoDevice> videoDevice;
 	m_mediaDevice.As(&videoDevice);
 	m_noHWDecoding = (videoDevice == nullptr);
 
-    return S_OK;
+	return S_OK;
 }
+
 
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::CreatePlaybackTexture(
@@ -209,6 +221,8 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 	{
 		IFR(Stop());
 	}
+
+	m_subtitleTracks.clear();
 
     // create the media source for content (fromUri)
     ComPtr<IMediaSource2> spMediaSource2;
@@ -280,6 +294,9 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 
 	auto videoTracksChangedHandler = Microsoft::WRL::Callback<ITracksChangedEventHandler>(this, &CMediaPlayerPlayback::OnVideoTracksChanged);
 	m_spPlaybackItem->add_VideoTracksChanged(videoTracksChangedHandler.Get(), &m_videoTracksChangedEventToken);
+
+	auto metadataTracksChangedHandler = Microsoft::WRL::Callback<ITracksChangedEventHandler>(this, &CMediaPlayerPlayback::OnTimedMetadataTracksChanged);
+	m_spPlaybackItem->add_TimedMetadataTracksChanged(metadataTracksChangedHandler.Get(), &m_timedMetadataChangedEventToken);
 
     ComPtr<IMediaPlaybackSource> spMediaPlaybackSource;
     IFR(m_spPlaybackItem.As(&spMediaPlaybackSource));
@@ -356,6 +373,7 @@ HRESULT CMediaPlayerPlayback::Stop()
 
 		if (m_spPlaybackItem != nullptr)
 		{
+			LOG_RESULT(m_spPlaybackItem->remove_TimedMetadataTracksChanged(m_timedMetadataChangedEventToken));
 			LOG_RESULT(m_spPlaybackItem->remove_VideoTracksChanged(m_videoTracksChangedEventToken));
 			m_spPlaybackItem.Reset();
 			m_spPlaybackItem = nullptr;
@@ -543,6 +561,45 @@ HRESULT CMediaPlayerPlayback::SetDRMLicenseCallback(_In_ DRMLicenseRequestedCall
 }
 
 
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::GetSubtitlesTrackCount(unsigned int * count)
+{
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::GetSubtitlesTrackCount()");
+
+	NULL_CHK(count);
+
+	*count = (unsigned int)m_subtitleTracks.size();
+
+	return S_OK;
+}
+
+
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::GetSubtitlesTrack(unsigned int index, const wchar_t** trackId, const wchar_t** trackLabel, const wchar_t** trackLanguage)
+{
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::GetSubtitlesTrack()");
+
+	if (index >= (unsigned int)m_subtitleTracks.size())
+		return E_INVALIDARG;
+
+	*trackId = m_subtitleTracks[index].id.data();
+	*trackLabel = m_subtitleTracks[index].title.data();
+	*trackLanguage = m_subtitleTracks[index].language.data();
+
+	return S_OK;
+}
+
+
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::SetSubtitlesCallbacks(SubtitleItemEnteredCallback fnEnteredCallback, SubtitleItemExitedCallback fnExitedCallback)
+{
+	Log(Log_Level_Info, L"CMediaPlayerPlayback::SetSubtitlesCallbacks()");
+
+	m_fnSubtitleEntered = fnEnteredCallback;
+	m_fnSubtitleExited = fnExitedCallback;
+
+	return S_OK;
+}
 
 
 _Use_decl_annotations_
@@ -602,6 +659,8 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
 {
     Log(Log_Level_Info, L"CMediaPlayerPlayback::ReleaseMediaPlayer()");
 
+	m_subtitleTracks.clear();
+
     RemoveStateChanged();
 
     if (nullptr != m_mediaPlayer)
@@ -624,6 +683,7 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
 
 		if (m_spPlaybackItem != nullptr)
 		{
+			LOG_RESULT(m_spPlaybackItem->remove_TimedMetadataTracksChanged(m_timedMetadataChangedEventToken));
 			LOG_RESULT(m_spPlaybackItem->remove_VideoTracksChanged(m_videoTracksChangedEventToken));
 			m_spPlaybackItem.Reset();
 			m_spPlaybackItem = nullptr;
@@ -664,7 +724,11 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
     hr = m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, &spTexture);
 	if (FAILED(hr))
 	{
-		IFR(hr);
+		MFUnlockDXGIDeviceManager();
+		ReleaseResources();
+		
+		IFR(InitializeDevices());
+		IFR(m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, &spTexture));
 	}
 
     auto srvDesc = CD3D11_SHADER_RESOURCE_VIEW_DESC(spTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D);
@@ -832,9 +896,6 @@ void CMediaPlayerPlayback::RemoveStateChanged()
 _Use_decl_annotations_
 void CMediaPlayerPlayback::ReleaseResources()
 {
-    m_fnStateCallback = nullptr;
-	m_fnLicenseCallback = nullptr;
-
     // release dx devices
     m_mediaDevice.Reset();
     m_mediaDevice = nullptr;
@@ -921,6 +982,8 @@ HRESULT CMediaPlayerPlayback::OnEnded(
 
     if (m_fnStateCallback != nullptr)
         m_fnStateCallback(m_pClientObject, playbackState);
+
+	m_subtitleTracks.clear();
 
     return S_OK;
 }
@@ -1015,6 +1078,7 @@ HRESULT CMediaPlayerPlayback::OnDownloadRequested(ABI::Windows::Media::Streaming
 }
 
 
+_Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::OnVideoTracksChanged(IMediaPlaybackItem* pItem, ABI::Windows::Foundation::Collections::IVectorChangedEventArgs* pArgs)
 {
 	if (false == m_noHWDecoding || false == m_make1080MaxWhenNoHWDecoding || m_bIgnoreEvents)
@@ -1087,6 +1151,182 @@ HRESULT CMediaPlayerPlayback::OnVideoTracksChanged(IMediaPlaybackItem* pItem, AB
 		{
 			spTrackList->put_SelectedIndex(maxLessThan1080Index);
 		}
+	}
+
+	return S_OK;
+}
+
+
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::OnTimedMetadataTracksChanged(ABI::Windows::Media::Playback::IMediaPlaybackItem* pItem, ABI::Windows::Foundation::Collections::IVectorChangedEventArgs* pArgs)
+{
+	NULL_CHK(pItem);
+
+	ComPtr<ABI::Windows::Foundation::Collections::IVectorView<ABI::Windows::Media::Core::TimedMetadataTrack*>> metadataTracks;
+	ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackTimedMetadataTrackList> spTrackList;
+	unsigned int index = -1;
+	unsigned int size = 0;
+	ABI::Windows::Foundation::Collections::CollectionChange cchange = ABI::Windows::Foundation::Collections::CollectionChange::CollectionChange_Reset;
+
+	IFR(pItem->get_TimedMetadataTracks(&metadataTracks));
+	metadataTracks.As(&spTrackList);
+	metadataTracks->get_Size(&size);
+
+	m_bIgnoreEvents = true;
+	
+	pArgs->get_CollectionChange(&cchange);
+
+	if (cchange == ABI::Windows::Foundation::Collections::CollectionChange::CollectionChange_ItemInserted)
+	{
+		pArgs->get_Index(&index);
+
+		m_subtitleTracks.clear();
+	}
+	else if (cchange == ABI::Windows::Foundation::Collections::CollectionChange::CollectionChange_Reset)
+	{
+		m_subtitleTracks.clear();
+	}
+	else
+	{
+		size = 0;
+	}
+
+	for (unsigned int i = 0; i < size; i++)
+	{
+		ComPtr<ABI::Windows::Media::Core::ITimedMetadataTrack> track;
+
+		metadataTracks->GetAt(i, track.ReleaseAndGetAddressOf());
+		if (track == nullptr)
+			continue;
+
+		TimedMetadataKind kind = TimedMetadataKind::TimedMetadataKind_Custom;
+		track->get_TimedMetadataKind(&kind);
+
+		if (kind != TimedMetadataKind::TimedMetadataKind_Subtitle)
+			continue;
+
+		ComPtr<IMediaTrack> spMediaTrack;
+		track.As(&spMediaTrack);
+
+		Wrappers::HString id, label, language;
+		spMediaTrack->get_Id(id.GetAddressOf());
+		spMediaTrack->get_Label(label.GetAddressOf());
+		spMediaTrack->get_Language(language.GetAddressOf());
+
+		SUBTITLE_TRACK st;
+		st.id = id.GetRawBuffer(nullptr);
+		st.language = language.IsValid() ? language.GetRawBuffer(nullptr) : L"";
+		st.title = label.IsValid() ? label.GetRawBuffer(nullptr) : L"";
+
+		m_subtitleTracks.push_back(st);
+
+		if (index != -1 && i != index)
+			continue;
+
+		EventRegistrationToken cueEnteredToken, cureExitedToken;
+		auto spCueEnteredHandler = Microsoft::WRL::Callback<IMediaCueEventHandler>(this, &CMediaPlayerPlayback::OnCueEntered);
+		auto spCueExitedHandler = Microsoft::WRL::Callback<IMediaCueEventHandler>(this, &CMediaPlayerPlayback::OnCueExited);
+
+		track->add_CueEntered(spCueEnteredHandler.Get(), &cueEnteredToken);
+		track->add_CueExited(spCueExitedHandler.Get(), &cureExitedToken);
+
+		spTrackList->SetPresentationMode(i, ABI::Windows::Media::Playback::TimedMetadataTrackPresentationMode::TimedMetadataTrackPresentationMode_ApplicationPresented);
+	}
+
+	m_bIgnoreEvents = false;
+
+	return S_OK;
+}
+
+
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::OnCueEntered(ABI::Windows::Media::Core::ITimedMetadataTrack* pTrack, ABI::Windows::Media::Core::IMediaCueEventArgs* pArgs)
+{
+	ComPtr<IMediaCue> spCue;
+	pArgs->get_Cue(&spCue);
+
+	if (!spCue)
+		return E_UNEXPECTED;
+
+	ComPtr<ITimedTextCue> spTextCue;
+	spCue.As(&spTextCue);
+
+	if (!spTextCue)
+		return E_UNEXPECTED;
+
+	ComPtr<IMediaTrack> spMediaTrack;
+	Wrappers::HString language, trackId;
+	std::wstring langName;
+
+	pTrack->QueryInterface(IID_IMediaTrack, &spMediaTrack);
+	spMediaTrack->get_Language(language.GetAddressOf());
+	if (language.IsValid())
+		langName = language.GetRawBuffer(nullptr);
+	spMediaTrack->get_Id(trackId.GetAddressOf());
+
+	ComPtr<ABI::Windows::Foundation::Collections::IVector<ABI::Windows::Media::Core::TimedTextLine*>> spLines;
+	spTextCue->get_Lines(&spLines);
+	
+	unsigned int size = 0;
+	if (spLines)
+		spLines->get_Size(&size);
+
+	std::vector<const wchar_t*> lines;
+	const wchar_t* empty = L"";
+
+	for (unsigned int i = 0; i < size; i++)
+	{
+		ComPtr<ITimedTextLine> line;
+		spLines->GetAt(i, &line);
+
+		Wrappers::HString text;
+
+		line->get_Text(text.GetAddressOf());
+
+		const wchar_t* textLine = empty;
+		if (text.IsValid())
+			textLine = text.GetRawBuffer(nullptr);
+
+		lines.push_back(textLine);
+	}
+
+	Wrappers::HString id;
+	spCue->get_Id(id.GetAddressOf());
+
+	if (m_fnSubtitleEntered != nullptr)
+	{
+		m_fnSubtitleEntered(m_pClientObject, trackId.GetRawBuffer(nullptr), id.GetRawBuffer(nullptr), langName.data(), lines.data(), size);
+	}
+
+	return S_OK;
+}
+
+
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::OnCueExited(ABI::Windows::Media::Core::ITimedMetadataTrack* pTrack, ABI::Windows::Media::Core::IMediaCueEventArgs* pArgs)
+{
+	ComPtr<IMediaCue> spCue;
+	pArgs->get_Cue(&spCue);
+
+	if (!spCue)
+		return E_UNEXPECTED;
+
+	ComPtr<ITimedTextCue> spTextCue;
+	spCue.As(&spTextCue);
+
+	if (!spTextCue)
+		return E_UNEXPECTED;
+
+	ComPtr<IMediaTrack> spMediaTrack;
+	pTrack->QueryInterface(IID_IMediaTrack, &spMediaTrack);
+
+	Wrappers::HString cueId, trackId;
+	spCue->get_Id(cueId.GetAddressOf());
+	spMediaTrack->get_Id(trackId.GetAddressOf());
+
+	if (m_fnSubtitleExited != nullptr)
+	{
+		m_fnSubtitleExited(m_pClientObject, trackId.GetRawBuffer(nullptr), cueId.GetRawBuffer(nullptr));
 	}
 
 	return S_OK;

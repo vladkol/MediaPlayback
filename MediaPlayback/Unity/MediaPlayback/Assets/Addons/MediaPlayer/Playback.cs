@@ -36,10 +36,15 @@ namespace MediaPlayer
         public delegate void PlaybackStateChangedHandler(object sender, ChangedEventArgs<PlaybackState> args);
         public delegate void PlaybackFailedHandler (object sender, long hresult);
         public delegate void DRMLicenseRequestedHandler(object sender, ref PlayReadyLicenseData item);
+        public delegate void SubtitleItemEnteredHandler(object sender, string subtitlesTrackId, string textCueId, string language, string[] textLines);
+        public delegate void SubtitleItemExitedHandler(object sender, string subtitlesTrackId, string textCueId);
 
         public event PlaybackStateChangedHandler PlaybackStateChanged;
         public event PlaybackFailedHandler PlaybackFailed;
         public event DRMLicenseRequestedHandler DRMLicenseRequested;
+        public event SubtitleItemEnteredHandler SubtitleItemEntered;
+        public event SubtitleItemExitedHandler SubtitleItemExited;
+
 
         public Renderer targetRendererLeftOrBoth = null;
         public Renderer targetRendererRightOrBoth = null;
@@ -366,6 +371,26 @@ namespace MediaPlayer
             return (loaded && !string.IsNullOrEmpty(currentItem));
         }
 
+        public uint GetSublitlesTracksCount()
+        {
+            uint count = 0;
+            Plugin.GetSubtitlesTracksCount(pluginInstance, out count);
+            return count;
+        }
+
+        public void GetSubtitlesTrack(uint index, out string id, out string title, out string language)
+        {
+            IntPtr _id;
+            IntPtr _title;
+            IntPtr _language;
+
+            Plugin.GetSubtitlesTrack(pluginInstance, index, out _id, out _title, out _language);
+
+            id = Marshal.PtrToStringUni(_id);
+            title = Marshal.PtrToStringUni(_title);
+            language = Marshal.PtrToStringUni(_language);
+        }
+
         IEnumerator Start()
         {
             yield return StartCoroutine("CallPluginAtEndOfFrames");
@@ -444,6 +469,8 @@ namespace MediaPlayer
             Debug.LogFormat("MediaPlayback has been created. HW decoding is {0}.", hwDecodingSupported ? "supported" : "not supported");
 
             UpdateTexture();
+
+            CheckHR(Plugin.SetSubtitlesCallbacks(pluginInstance, MediaPlayback_SubtitleItemEntered, MediaPlayback_SubtitleItemExited));
         }
 
         private void OnDisable()
@@ -510,6 +537,84 @@ namespace MediaPlayer
             thisObject.OnStateChanged(args);
 #endif
         }
+
+
+        [AOT.MonoPInvokeCallback(typeof(Plugin.SubtitleItemEnteredCallback))]
+        private static void MediaPlayback_SubtitleItemEntered(IntPtr thisObjectPtr, [MarshalAs(UnmanagedType.LPWStr)] string subtitleTrackId, 
+                                                                                    [MarshalAs(UnmanagedType.LPWStr)] string textCueId,
+                                                                                    [MarshalAs(UnmanagedType.LPWStr)] string language,
+                                                                                    [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPWStr, SizeParamIndex = 4)] string[] textLines,
+                                                                                    uint linesCount)
+        {
+            if (thisObjectPtr == IntPtr.Zero)
+            {
+                Debug.LogError("MediaPlayback_SubtitleItemEntered: requires thisObjectPtr.");
+                return;
+            }
+
+            var handle = GCHandle.FromIntPtr(thisObjectPtr);
+            Playback thisObject = handle.Target as Playback;
+            if (thisObject == null)
+            {
+                Debug.LogError("MediaPlayback_SubtitleItemEntered: thisObjectPtr is not null, but seems invalid.");
+                return;
+            }
+
+#if UNITY_WSA_10_0
+            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            {
+                thisObject.OnSubtitleItemEntered(subtitleTrackId, textCueId, language, textLines);
+            }, false);
+#else
+            thisObject.OnSubtitleItemEntered(textCueId, language, textLines);
+#endif
+        }
+
+
+        [AOT.MonoPInvokeCallback(typeof(Plugin.SubtitleItemExitedCallback))]
+        private static void MediaPlayback_SubtitleItemExited(IntPtr thisObjectPtr, [MarshalAs(UnmanagedType.LPWStr)] string subtitleTrackId, [MarshalAs(UnmanagedType.LPWStr)] string textCueId)
+        {
+            if (thisObjectPtr == IntPtr.Zero)
+            {
+                Debug.LogError("MediaPlayback_SubtitleItemExited: requires thisObjectPtr.");
+                return;
+            }
+
+            var handle = GCHandle.FromIntPtr(thisObjectPtr);
+            Playback thisObject = handle.Target as Playback;
+            if (thisObject == null)
+            {
+                Debug.LogError("MediaPlayback_SubtitleItemExited: thisObjectPtr is not null, but seems invalid.");
+                return;
+            }
+
+#if UNITY_WSA_10_0
+            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            {
+                thisObject.OnSubtitleItemExited(subtitleTrackId, textCueId);
+            }, false);
+#else
+            thisObject.OnSubtitleItemExited(subtitleTrackId, textCueId);
+#endif
+        }
+
+
+        private void OnSubtitleItemEntered(string subtitleTrackId, string textCueId, string language, string[] textLines)
+        {
+            if (SubtitleItemEntered != null)
+            {
+                SubtitleItemEntered(this, subtitleTrackId, textCueId, language, textLines);
+            }
+        }
+
+        private void OnSubtitleItemExited(string subtitleTrackId, string textCueId)
+        {
+            if (SubtitleItemExited != null)
+            {
+                SubtitleItemExited(this, subtitleTrackId, textCueId);
+            }
+        }
+
 
         private void TriggerPlaybackStateChangedEvent(ChangedEventArgs<PlaybackState> args)
         {
@@ -706,6 +811,12 @@ namespace MediaPlayer
 
             public delegate void StateChangedCallback(IntPtr thisObjectPtr, PLAYBACK_STATE args);
             public delegate void DRMLicenseRequestedCallback(IntPtr thisObjectPtr);
+            public delegate void SubtitleItemEnteredCallback(IntPtr thisObjectPtr,  [MarshalAs(UnmanagedType.LPWStr)] string subtitleTrackId, 
+                                                                                    [MarshalAs(UnmanagedType.LPWStr)] string textCueId, 
+                                                                                    [MarshalAs(UnmanagedType.LPWStr)] string language,
+                                                                                    [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPWStr, SizeParamIndex = 5)] string[] textLines, 
+                                                                                    uint linesCount);
+            public delegate void SubtitleItemExitedCallback(IntPtr thisObjectPtr, [MarshalAs(UnmanagedType.LPWStr)] string subtitleTrackId, [MarshalAs(UnmanagedType.LPWStr)] string textCueId);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "CreateMediaPlayback")]
             internal static extern long CreateMediaPlayback(StateChangedCallback callback, IntPtr playbackObject, out IntPtr pluginInstance);
@@ -717,7 +828,7 @@ namespace MediaPlayer
             internal static extern long CreatePlaybackTexture(IntPtr pluginInstance, UInt32 width, UInt32 height, out System.IntPtr playbackTexture);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "LoadContent")]
-            internal static extern long LoadContent(IntPtr pluginInstance, bool useFFmpeg, bool decodeVideo, [MarshalAs(UnmanagedType.BStr)] string sourceURL);
+            internal static extern long LoadContent(IntPtr pluginInstance, bool useFFmpeg, bool decodeVideo, [MarshalAs(UnmanagedType.LPWStr)] string sourceURL);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "Play")]
             internal static extern long Play(IntPtr pluginInstance);
@@ -744,10 +855,20 @@ namespace MediaPlayer
             internal static extern long GetMediaPlayer(IntPtr pluginInstance, out IntPtr ppvUnknown);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetDRMLicense")]
-            internal static extern long SetDRMLicense(IntPtr pluginInstance, [MarshalAs(UnmanagedType.BStr)] string licenseServiceURL, [MarshalAs(UnmanagedType.BStr)] string licenseCustomChallendgeData);
+            internal static extern long SetDRMLicense(IntPtr pluginInstance, [MarshalAs(UnmanagedType.LPWStr)] string licenseServiceURL, [MarshalAs(UnmanagedType.LPWStr)] string licenseCustomChallendgeData);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetDRMLicenseCallback")]
             internal static extern long SetDRMLicenseCallback(IntPtr pluginInstance, DRMLicenseRequestedCallback callback);
+
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetSubtitlesCallbacks")]
+            internal static extern long SetSubtitlesCallbacks(IntPtr pluginInstance, SubtitleItemEnteredCallback enteredCallback, SubtitleItemExitedCallback exitedCallback);
+
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetSubtitlesTracksCount")]
+            internal static extern long GetSubtitlesTracksCount(IntPtr pluginInstance, [Out] out uint count);
+
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetSubtitlesTrack")]
+            internal static extern long GetSubtitlesTrack(IntPtr pluginInstance, uint index, out IntPtr trackId, out IntPtr trackLabel, out IntPtr trackLanuguage);
+
 
             // Unity plugin
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetTimeFromUnity")]
