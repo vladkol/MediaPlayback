@@ -163,6 +163,7 @@ HRESULT CMediaPlayerPlayback::CreatePlaybackTexture(
 	m_readyForFrames = false;
 
     // create the video texture description based on texture format
+	ZeroMemory(&m_textureDesc, sizeof(m_textureDesc));
     m_textureDesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_B8G8R8A8_UNORM, width, height);
     m_textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
     m_textureDesc.MipLevels = 1;
