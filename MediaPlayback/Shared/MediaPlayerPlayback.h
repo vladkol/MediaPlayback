@@ -209,6 +209,7 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D11Device> m_d3dDevice;
     Microsoft::WRL::ComPtr<ID3D11Device> m_mediaDevice;
+	Microsoft::WRL::ComPtr<IMFDXGIDeviceManager> m_spDeviceManager;
 
     StateChangedCallback m_fnStateCallback;
 	DRMLicenseRequestedCallback m_fnLicenseCallback;
@@ -217,6 +218,7 @@ private:
 	void* m_pClientObject;
 
     Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlayer> m_mediaPlayer;
+	UINT m_uiDeviceResetToken;
     EventRegistrationToken m_openedEventToken;
     EventRegistrationToken m_endedEventToken;
     EventRegistrationToken m_failedEventToken;

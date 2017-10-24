@@ -718,6 +718,7 @@ namespace MediaPlayer
                     loaded = false;
                     break;
                 case Plugin.StateType.StateType_DeviceLost:
+                    Debug.LogWarning("Graphics device was lost! Recreating the playback texture!");
                     UpdateTexture();
                     break;
                 default:

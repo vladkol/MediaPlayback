@@ -73,6 +73,7 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
     , m_primarySharedHandle(INVALID_HANDLE_VALUE)
     , m_primaryMediaTexture(nullptr)
     , m_primaryMediaSurface(nullptr)
+	, m_uiDeviceResetToken(0)
 	, m_bIgnoreEvents(false)
 	, m_readyForFrames(false)
 	, m_noHWDecoding(false)
@@ -139,15 +140,19 @@ HRESULT CMediaPlayerPlayback::InitializeDevices()
 	// lock the shared dxgi device manager
 	// will keep lock open for the life of object
 	// call MFUnlockDXGIDeviceManager when unloading
-	UINT uiResetToken;
-	ComPtr<IMFDXGIDeviceManager> spDeviceManager;
-	IFR(MFLockDXGIDeviceManager(&uiResetToken, &spDeviceManager));
+	if (!m_spDeviceManager)
+	{
+		IFR(MFLockDXGIDeviceManager(&m_uiDeviceResetToken, &m_spDeviceManager));
+	}
 
 	// associtate the device with the manager
-	IFR(spDeviceManager->ResetDevice(spMediaDevice.Get(), uiResetToken));
+	IFR(m_spDeviceManager->ResetDevice(spMediaDevice.Get(), m_uiDeviceResetToken));
 
 	// create media player object
-	IFR(CreateMediaPlayer());
+	if (!m_mediaPlayer)
+	{
+		IFR(CreateMediaPlayer());
+	}
 
 	m_d3dDevice.Attach(spDevice.Detach());
 	m_mediaDevice.Attach(spMediaDevice.Detach());
@@ -925,6 +930,7 @@ void CMediaPlayerPlayback::ReleaseResources()
     m_d3dDevice = nullptr;
 }
 
+
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::OnVideoFrameAvailable(IMediaPlayer* sender, IInspectable* arg)
 {
@@ -939,6 +945,7 @@ HRESULT CMediaPlayerPlayback::OnVideoFrameAvailable(IMediaPlayer* sender, IInspe
     if (nullptr != m_primaryMediaSurface)
     {
         HRESULT hr = spMediaPlayer5->CopyFrameToVideoSurface(m_primaryMediaSurface.Get());
+		
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
 		{
 			m_readyForFrames = false;
