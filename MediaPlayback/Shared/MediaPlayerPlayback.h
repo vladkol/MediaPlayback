@@ -25,6 +25,7 @@ enum class StateType : UINT32
     StateType_Opened,
     StateType_StateChanged,
     StateType_Failed,
+	StateType_DeviceLost
 };
 
 enum class PlaybackState : UINT32
@@ -251,6 +252,7 @@ private:
 
 	std::vector<SUBTITLE_TRACK> m_subtitleTracks;
 
+	bool m_gotDeviceLost;
 	bool m_readyForFrames;
 	bool m_noHWDecoding;
 	bool m_make1080MaxWhenNoHWDecoding;

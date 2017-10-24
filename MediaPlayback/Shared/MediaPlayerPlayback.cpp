@@ -138,7 +138,7 @@ HRESULT CMediaPlayerPlayback::InitializeDevices()
 
 	// lock the shared dxgi device manager
 	// will keep lock open for the life of object
-	//     call MFUnlockDXGIDeviceManager when unloading
+	// call MFUnlockDXGIDeviceManager when unloading
 	UINT uiResetToken;
 	ComPtr<IMFDXGIDeviceManager> spDeviceManager;
 	IFR(MFLockDXGIDeviceManager(&uiResetToken, &spDeviceManager));
@@ -155,6 +155,8 @@ HRESULT CMediaPlayerPlayback::InitializeDevices()
 	Microsoft::WRL::ComPtr<ID3D11VideoDevice> videoDevice;
 	m_mediaDevice.As(&videoDevice);
 	m_noHWDecoding = (videoDevice == nullptr);
+
+	m_gotDeviceLost = false;
 
 	return S_OK;
 }
@@ -709,7 +711,7 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
 {
 	Log(Log_Level_Info, L"CMediaPlayerPlayback::CreateTextures()");
 
-    if (nullptr != m_primaryTexture || nullptr != m_primaryTextureSRV)
+    if (m_gotDeviceLost || nullptr != m_primaryTexture || nullptr != m_primaryTextureSRV)
         ReleaseTextures();
 
 	HRESULT hr = S_OK;
@@ -721,15 +723,34 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
 
     // create staging texture on unity device
     ComPtr<ID3D11Texture2D> spTexture;
-    hr = m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, &spTexture);
+
+	if (!m_gotDeviceLost)
+	{
+		try
+		{
+			hr = m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, &spTexture);
+		}
+		catch (...)
+		{
+			hr = E_FAIL;
+		}
+	}
+	else
+	{
+		hr = DXGI_ERROR_DEVICE_REMOVED;
+	}
+
 	if (FAILED(hr))
 	{
+		m_readyForFrames = false;
 		MFUnlockDXGIDeviceManager();
 		ReleaseResources();
-		
+
 		IFR(InitializeDevices());
 		IFR(m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, &spTexture));
 	}
+
+	m_gotDeviceLost = false;
 
     auto srvDesc = CD3D11_SHADER_RESOURCE_VIEW_DESC(spTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D);
     ComPtr<ID3D11ShaderResourceView> spSRV;
@@ -907,7 +928,7 @@ void CMediaPlayerPlayback::ReleaseResources()
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::OnVideoFrameAvailable(IMediaPlayer* sender, IInspectable* arg)
 {
-	if (!m_readyForFrames)
+	if (!m_readyForFrames || m_gotDeviceLost)
 		return S_OK;
 
     ComPtr<IMediaPlayer> spMediaPlayer(sender);
@@ -917,7 +938,26 @@ HRESULT CMediaPlayerPlayback::OnVideoFrameAvailable(IMediaPlayer* sender, IInspe
 
     if (nullptr != m_primaryMediaSurface)
     {
-        IFR(spMediaPlayer5->CopyFrameToVideoSurface(m_primaryMediaSurface.Get()));
+        HRESULT hr = spMediaPlayer5->CopyFrameToVideoSurface(m_primaryMediaSurface.Get());
+		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+		{
+			m_readyForFrames = false;
+			m_gotDeviceLost = true;
+
+			PLAYBACK_STATE playbackState;
+			ZeroMemory(&playbackState, sizeof(playbackState));
+			playbackState.type = StateType::StateType_DeviceLost;
+			playbackState.state = PlaybackState::PlaybackState_None;
+
+			try
+			{
+				if (m_fnStateCallback != nullptr)
+					m_fnStateCallback(m_pClientObject, playbackState);
+			}
+			catch (...)
+			{
+			}
+		}
     }
 
     return S_OK;

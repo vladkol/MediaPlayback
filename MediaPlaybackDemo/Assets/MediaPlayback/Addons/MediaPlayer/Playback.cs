@@ -35,16 +35,17 @@ namespace MediaPlayer
         // state handling
         public delegate void PlaybackStateChangedHandler(object sender, ChangedEventArgs<PlaybackState> args);
         public delegate void PlaybackFailedHandler (object sender, long hresult);
+        public delegate void TextureUpdatedHandler(object sender);
         public delegate void DRMLicenseRequestedHandler(object sender, ref PlayReadyLicenseData item);
         public delegate void SubtitleItemEnteredHandler(object sender, string subtitlesTrackId, string textCueId, string language, string[] textLines);
         public delegate void SubtitleItemExitedHandler(object sender, string subtitlesTrackId, string textCueId);
 
         public event PlaybackStateChangedHandler PlaybackStateChanged;
         public event PlaybackFailedHandler PlaybackFailed;
+        public event TextureUpdatedHandler TextureUpdated;
         public event DRMLicenseRequestedHandler DRMLicenseRequested;
         public event SubtitleItemEnteredHandler SubtitleItemEntered;
         public event SubtitleItemExitedHandler SubtitleItemExited;
-
 
         public Renderer targetRendererLeftOrBoth = null;
         public Renderer targetRendererRightOrBoth = null;
@@ -271,6 +272,28 @@ namespace MediaPlayer
             if (targetRendererLeftOrBoth)
                 targetRendererLeftOrBoth.material.mainTexture = this.playbackTexture;
 
+            UpdateMaterial();
+
+            if (TextureUpdated != null)
+            {
+
+#if UNITY_WSA_10_0
+                if (!UnityEngine.WSA.Application.RunningOnAppThread())
+                {
+                    UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                    {
+                        TextureUpdated(this);
+                    }, false);
+                }
+                else
+                {
+                    TextureUpdated(this);
+                }
+#else
+                TextureUpdated(this);
+#endif
+            }
+
             if (oldTexture != null)
             {
                 try
@@ -279,9 +302,8 @@ namespace MediaPlayer
                 }
                 catch { }
             }
-
-            UpdateMaterial();
         }
+
 
         public void UpdateTexture()
         {
@@ -695,6 +717,9 @@ namespace MediaPlayer
                     this.State = PlaybackState.None;
                     loaded = false;
                     break;
+                case Plugin.StateType.StateType_DeviceLost:
+                    UpdateTexture();
+                    break;
                 default:
                     break;
             }
@@ -778,6 +803,7 @@ namespace MediaPlayer
                 StateType_Opened,
                 StateType_StateChanged,
                 StateType_Failed,
+                StateType_DeviceLost
             };
 
             [StructLayout(LayoutKind.Sequential, Pack = 8)]
