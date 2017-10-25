@@ -239,8 +239,8 @@
     <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\PlayReadyLicenseHandler.cs" />
     <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\PlayReadyUtils.cs" />
     <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\States.cs" />
+    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\VideoAspectHandler.cs" />
     <Compile Include="Assets\MediaPlayback\Scenes\UWPTest\VideoLibraryTest.cs" />
-    <Compile Include="Assets\VideoAspectHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\MediaPlayback\Shaders\360VideoShader.shader" />

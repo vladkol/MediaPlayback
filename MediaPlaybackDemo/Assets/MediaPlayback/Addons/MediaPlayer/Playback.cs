@@ -94,7 +94,7 @@ namespace MediaPlayer
 
         public VideoLayout layout = VideoLayout.Mono;
 
-        public float textureOffsetX = 0.0f;
+        public float textureOffsetX = 0.25f;
         public float textureOffsetY = 0.0f;
 
         public bool UseFFMPEG = false;
@@ -453,6 +453,9 @@ namespace MediaPlayer
                 float videoWidth = GetVideoWidth();
                 float videoHeight = GetVideoHeight();
 
+                if (videoWidth == 0)
+                    return;
+
                 float targetTextureHeigh = textureWidth * videoHeight / videoWidth;
 
                 float ratio = targetTextureHeigh / textureHeight;
@@ -462,32 +465,56 @@ namespace MediaPlayer
                 var scaleLeft = new Vector2(1, 1);
                 var scaleRight = new Vector2(1, 1);
 
+                var offsetLeft = new Vector2(textureOffsetX, textureOffsetY);
+                var offsetRight = new Vector2(textureOffsetX, textureOffsetY);
+
                 switch (layout)
                 {
                     case VideoLayout.StereoLeftRight:
                         scaleLeft = new Vector2(0.5f, -1f * ratio);
                         scaleRight = new Vector2(0.5f, -1f * ratio);
-                        
+
+                        offsetLeft.x *= 0.5f;
+                        offsetRight.x *= 0.5f;
+
+                        offsetLeft.x -= 0.5f;
+
+                        offsetLeft.y *= ratio;
+                        offsetRight.y *= ratio;
+                        offsetLeft.y += -0.5f + ratio/2.0f;
+                        offsetRight.y += -0.5f + ratio/2.0f;
+
                         break;
                     case VideoLayout.StereoTopBottom:
                         scaleLeft = new Vector2(1, -0.5f * ratio);
                         scaleRight = new Vector2(1, -0.5f * ratio);
-                        
+
+                        offsetLeft.y *= ratio;
+                        offsetRight.y *= ratio;
+
+                        offsetLeft.y += -0.5f;
+                        offsetRight.y += -ratioDiff;
+
                         break;
                     default:
                         scaleLeft = new Vector2(1f, -1f * ratio);
                         scaleRight = new Vector2(1f, -1f * ratio);
+
+                        offsetLeft.y *= ratio;
+                        offsetRight.y *= ratio;
+                        offsetLeft.y += -0.5f + ratio / 2.0f;
+                        offsetRight.y += -0.5f + ratio / 2.0f;
                         break;
                 }
                 if (matLeft != null)
                 {
                     matLeft.SetTextureScale("_MainTex", scaleLeft);
-                    matLeft.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY - ratioDiff));
+                    matLeft.SetTextureOffset("_MainTex", offsetLeft);
                 }
                 if (matRight != null)
                 {
                     matRight.SetTextureScale("_MainTex", scaleRight);
-                    matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX + (1f - scaleRight.x), textureOffsetY - ratioDiff));
+                    matRight.SetTextureOffset("_MainTex", offsetRight);
                 }
             }
 
