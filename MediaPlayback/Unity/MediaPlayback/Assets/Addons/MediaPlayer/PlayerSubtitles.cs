@@ -60,6 +60,8 @@ public class PlayerSubtitles : MonoBehaviour
         if (!string.IsNullOrEmpty(twoLetterLanguageName) && string.Compare(twoLetterLanguageName, language, true) != 0)
             return;
 
+        lastId = textCueId;
+
         StringBuilder builder = new StringBuilder();
         if(textLines != null && textLines.Length > 0)
         {
@@ -77,7 +79,7 @@ public class PlayerSubtitles : MonoBehaviour
 
     private void OnSubtitleItemExited(object sender, string subtitleTrackId, string textCueId)
     {
-        if(textCueId == lastId)
+        if(string.Compare(textCueId, lastId) == 0)
         {
             SetText(string.Empty);
             lastId = string.Empty;

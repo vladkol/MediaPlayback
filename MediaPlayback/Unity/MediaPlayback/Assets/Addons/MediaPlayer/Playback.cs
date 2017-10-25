@@ -30,6 +30,7 @@ namespace MediaPlayer
         Right
     }
 
+    
     public class Playback : MonoBehaviour
     {
         // state handling
@@ -148,7 +149,11 @@ namespace MediaPlayer
         private PlaybackState previousState = PlaybackState.None;
 
         private Texture2D playbackTexture;
-        private Plugin.StateChangedCallback stateCallback;
+
+        private Plugin.StateChangedCallback stateCallback = new Plugin.StateChangedCallback(MediaPlayback_Changed);
+        private Plugin.DRMLicenseRequestedCallback licenseCallback = new Plugin.DRMLicenseRequestedCallback(MediaPlayback_DRMLicenseRequested);
+        private Plugin.SubtitleItemEnteredCallback subtitleEnteredCallback = new Plugin.SubtitleItemEnteredCallback(MediaPlayback_SubtitleItemEntered);
+        private Plugin.SubtitleItemExitedCallback subtitleExitedCallback = new Plugin.SubtitleItemExitedCallback(MediaPlayback_SubtitleItemExited);
 
         private bool loaded = false;
         private bool hasNewSize = false;
@@ -260,48 +265,62 @@ namespace MediaPlayer
             IntPtr nativeTexture = IntPtr.Zero;
             CheckHR(Plugin.CreatePlaybackTexture(pluginInstance, this.textureWidth, this.textureHeight, out nativeTexture));
 
-            // create the unity texture2d 
-            this.playbackTexture = Texture2D.CreateExternalTexture((int)this.textureWidth, (int)this.textureHeight, TextureFormat.BGRA32, false, false, nativeTexture);
-
-            // set texture for the shader
-            if (targetRendererRightOrBoth == null && targetRendererLeftOrBoth == null)
-                targetRendererRightOrBoth = GetComponent<Renderer>();
-
-            if (targetRendererRightOrBoth)
-                targetRendererRightOrBoth.material.mainTexture = this.playbackTexture;
-            if (targetRendererLeftOrBoth)
-                targetRendererLeftOrBoth.material.mainTexture = this.playbackTexture;
-
-            UpdateMaterial();
-
-            if (TextureUpdated != null)
+            if (nativeTexture != IntPtr.Zero)
             {
-
-#if UNITY_WSA_10_0
-                if (!UnityEngine.WSA.Application.RunningOnAppThread())
+                if (playbackTexture == null || playbackTexture.width != (int)this.textureWidth || playbackTexture.height != (int)this.textureHeight)
                 {
-                    UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-                    {
-                        TextureUpdated(this);
-                    }, false);
+                    // create a new Unity texture2d 
+                    this.playbackTexture = Texture2D.CreateExternalTexture((int)this.textureWidth, (int)this.textureHeight, TextureFormat.BGRA32, false, false, nativeTexture);
                 }
                 else
                 {
-                    TextureUpdated(this);
+                    // we can just update our old Unity texture 
+                    oldTexture = null; 
+                    this.playbackTexture.UpdateExternalTexture(nativeTexture);
                 }
+
+                // set texture for the shader
+                if (targetRendererRightOrBoth == null && targetRendererLeftOrBoth == null)
+                    targetRendererRightOrBoth = GetComponent<Renderer>();
+
+                if (targetRendererRightOrBoth)
+                    targetRendererRightOrBoth.material.mainTexture = this.playbackTexture;
+                if (targetRendererLeftOrBoth)
+                    targetRendererLeftOrBoth.material.mainTexture = this.playbackTexture;
+
+                UpdateMaterial();
+
+                if (TextureUpdated != null)
+                {
+
+#if UNITY_WSA_10_0
+                    if (!UnityEngine.WSA.Application.RunningOnAppThread())
+                    {
+                        UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                        {
+                            TextureUpdated(this);
+                        }, true);
+                    }
+                    else
+                    {
+                        TextureUpdated(this);
+                    }
 #else
                 TextureUpdated(this);
 #endif
+                }
+
+                if (oldTexture != null)
+                {
+                    try
+                    {
+                        Destroy(oldTexture);
+                    }
+                    catch { }
+                }
+
             }
 
-            if (oldTexture != null)
-            {
-                try
-                {
-                    Destroy(oldTexture);
-                }
-                catch { }
-            }
         }
 
 
@@ -375,7 +394,7 @@ namespace MediaPlayer
         // only works when exported as a UWP app. Doesn't work in Unity Editor 
         private void InitializePlayReady()
         {
-            Plugin.SetDRMLicenseCallback(pluginInstance, MediaPlayback_DRMLicenseRequested);
+            Plugin.SetDRMLicenseCallback(pluginInstance, this.licenseCallback);
         }
 
         public uint GetVideoWidth()
@@ -451,9 +470,8 @@ namespace MediaPlayer
                         
                         break;
                     case VideoLayout.StereoTopBottom:
-                        ratioDiff /= 2;
-                        scaleLeft = new Vector2(1, -0.5f);
-                        scaleRight = new Vector2(1, -0.5f);
+                        scaleLeft = new Vector2(1, -0.5f * ratio);
+                        scaleRight = new Vector2(1, -0.5f * ratio);
                         
                         break;
                     default:
@@ -481,8 +499,6 @@ namespace MediaPlayer
             thisObject = GCHandle.Alloc(this, GCHandleType.Normal);
             IntPtr thisObjectPtr = GCHandle.ToIntPtr(thisObject);
 
-            this.stateCallback = new Plugin.StateChangedCallback(MediaPlayback_Changed);
-
             // create media playback
             CheckHR(Plugin.CreateMediaPlayback(this.stateCallback, thisObjectPtr, out pluginInstance));
 
@@ -492,7 +508,7 @@ namespace MediaPlayer
 
             UpdateTexture();
 
-            CheckHR(Plugin.SetSubtitlesCallbacks(pluginInstance, MediaPlayback_SubtitleItemEntered, MediaPlayback_SubtitleItemExited));
+            CheckHR(Plugin.SetSubtitlesCallbacks(pluginInstance, subtitleEnteredCallback, subtitleExitedCallback));
         }
 
         private void OnDisable()
@@ -551,10 +567,17 @@ namespace MediaPlayer
             }
 
 #if UNITY_WSA_10_0
-            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            if (!UnityEngine.WSA.Application.RunningOnAppThread())
+            {
+                UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                {
+                    thisObject.OnStateChanged(args);
+                }, false);
+            }
+            else
             {
                 thisObject.OnStateChanged(args);
-            }, false);
+            }
 #else
             thisObject.OnStateChanged(args);
 #endif
@@ -565,7 +588,7 @@ namespace MediaPlayer
         private static void MediaPlayback_SubtitleItemEntered(IntPtr thisObjectPtr, [MarshalAs(UnmanagedType.LPWStr)] string subtitleTrackId, 
                                                                                     [MarshalAs(UnmanagedType.LPWStr)] string textCueId,
                                                                                     [MarshalAs(UnmanagedType.LPWStr)] string language,
-                                                                                    [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPWStr, SizeParamIndex = 4)] string[] textLines,
+                                                                                    IntPtr textLinesPtr,
                                                                                     uint linesCount)
         {
             if (thisObjectPtr == IntPtr.Zero)
@@ -582,19 +605,37 @@ namespace MediaPlayer
                 return;
             }
 
+            IntPtr[] ptrArray = new IntPtr[linesCount];
+            string[] textLines = new string[linesCount];
+
+            Marshal.Copy(textLinesPtr, ptrArray, 0, (int)linesCount);
+
+            for (int i=0; i < textLines.Length; i++)
+            {
+                string line = Marshal.PtrToStringUni(ptrArray[i]);
+                textLines[i] = line;
+            }
+
 #if UNITY_WSA_10_0
-            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            if (!UnityEngine.WSA.Application.RunningOnAppThread())
+            {
+                UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                {
+                    thisObject.OnSubtitleItemEntered(subtitleTrackId, textCueId, language, textLines);
+                }, true);
+            }
+            else
             {
                 thisObject.OnSubtitleItemEntered(subtitleTrackId, textCueId, language, textLines);
-            }, false);
+            }
 #else
-            thisObject.OnSubtitleItemEntered(textCueId, language, textLines);
+            thisObject.OnSubtitleItemEntered(subtitleTrackId, textCueId, language, textLines);
 #endif
         }
 
 
         [AOT.MonoPInvokeCallback(typeof(Plugin.SubtitleItemExitedCallback))]
-        private static void MediaPlayback_SubtitleItemExited(IntPtr thisObjectPtr, [MarshalAs(UnmanagedType.LPWStr)] string subtitleTrackId, [MarshalAs(UnmanagedType.LPWStr)] string textCueId)
+        private static void MediaPlayback_SubtitleItemExited(IntPtr thisObjectPtr, IntPtr subtitleTrackId, IntPtr textCueId)
         {
             if (thisObjectPtr == IntPtr.Zero)
             {
@@ -610,13 +651,23 @@ namespace MediaPlayer
                 return;
             }
 
+            string trackId = Marshal.PtrToStringUni(subtitleTrackId);
+            string cueId = Marshal.PtrToStringUni(textCueId);
+
 #if UNITY_WSA_10_0
-            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            if (!UnityEngine.WSA.Application.RunningOnAppThread())
             {
-                thisObject.OnSubtitleItemExited(subtitleTrackId, textCueId);
-            }, false);
+                UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                {
+                    thisObject.OnSubtitleItemExited(trackId, cueId);
+                }, true);
+            }
+            else
+            {
+                thisObject.OnSubtitleItemExited(trackId, cueId);
+            }
 #else
-            thisObject.OnSubtitleItemExited(subtitleTrackId, textCueId);
+            thisObject.OnSubtitleItemExited(trackId, cueId);
 #endif
         }
 
@@ -718,6 +769,10 @@ namespace MediaPlayer
                     loaded = false;
                     break;
                 case Plugin.StateType.StateType_DeviceLost:
+                    Debug.LogWarning("Graphics device was lost!");
+                    break;
+                case Plugin.StateType.StateType_DeviceRestored:
+                    Debug.LogWarning("Graphics device was restored! Recreating the playback texture!");
                     UpdateTexture();
                     break;
                 default:
@@ -744,10 +799,17 @@ namespace MediaPlayer
             }
 
 #if UNITY_WSA_10_0
-            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            if (!UnityEngine.WSA.Application.RunningOnAppThread())
+            {
+                UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                {
+                    thisObject.OnDRMLicenseRequested();
+                }, true);
+            }
+            else
             {
                 thisObject.OnDRMLicenseRequested();
-            }, true);
+            }
 #else
             thisObject.OnDRMLicenseRequested();
 #endif
@@ -803,7 +865,8 @@ namespace MediaPlayer
                 StateType_Opened,
                 StateType_StateChanged,
                 StateType_Failed,
-                StateType_DeviceLost
+                StateType_DeviceLost,
+                StateType_DeviceRestored
             };
 
             [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -840,9 +903,9 @@ namespace MediaPlayer
             public delegate void SubtitleItemEnteredCallback(IntPtr thisObjectPtr,  [MarshalAs(UnmanagedType.LPWStr)] string subtitleTrackId, 
                                                                                     [MarshalAs(UnmanagedType.LPWStr)] string textCueId, 
                                                                                     [MarshalAs(UnmanagedType.LPWStr)] string language,
-                                                                                    [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPWStr, SizeParamIndex = 5)] string[] textLines, 
+                                                                                    IntPtr textLinesPtr, 
                                                                                     uint linesCount);
-            public delegate void SubtitleItemExitedCallback(IntPtr thisObjectPtr, [MarshalAs(UnmanagedType.LPWStr)] string subtitleTrackId, [MarshalAs(UnmanagedType.LPWStr)] string textCueId);
+            public delegate void SubtitleItemExitedCallback(IntPtr thisObjectPtr, IntPtr subtitleTrackId, IntPtr textCueId);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "CreateMediaPlayback")]
             internal static extern long CreateMediaPlayback(StateChangedCallback callback, IntPtr playbackObject, out IntPtr pluginInstance);

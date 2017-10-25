@@ -203,12 +203,14 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
     if (eventType == kUnityGfxDeviceEventInitialize)
     {
         s_DeviceType = s_Graphics->GetRenderer();
+		CMediaPlayerPlayback::ReportDeviceReady();
     }
 
     // Cleanup graphics API implementation upon shutdown
     if (eventType == kUnityGfxDeviceEventShutdown)
     {
         s_DeviceType = kUnityGfxRenderernullptr;
+		CMediaPlayerPlayback::ReportDeviceLost();
     }
 }
 

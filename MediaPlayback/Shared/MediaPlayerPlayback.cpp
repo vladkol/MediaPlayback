@@ -10,6 +10,7 @@
 //*********************************************************
 
 #include "pch.h"
+#include <ppltasks.h>
 #include "MediaPlayerPlayback.h"
 #include "MediaHelpers.h"
 
@@ -23,6 +24,29 @@ using namespace ABI::Windows::Media;
 using namespace ABI::Windows::Media::Core;
 using namespace ABI::Windows::Media::Playback;
 using namespace Windows::Foundation;
+
+bool CMediaPlayerPlayback::m_deviceNotReady = false;
+std::vector<CMediaPlayerPlayback*> CMediaPlayerPlayback::m_playbackObjects;
+
+void CMediaPlayerPlayback::ReportDeviceLost()
+{
+	m_deviceNotReady = true;
+
+	for (size_t i = 0; i < m_playbackObjects.size(); i++)
+	{
+		m_playbackObjects[i]->DeviceLost();
+	}
+}
+
+void CMediaPlayerPlayback::ReportDeviceReady()
+{
+	m_deviceNotReady = false;
+
+	for (size_t i = 0; i < m_playbackObjects.size(); i++)
+	{
+		m_playbackObjects[i]->DeviceRestored();
+	}
+}
 
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::CreateMediaPlayback(
@@ -49,6 +73,7 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayback(
         IFR(MakeAndInitialize<CMediaPlayerPlayback>(&spMediaPlayback, fnCallback, pClientObject, d3d));
 
         *ppMediaPlayback = spMediaPlayback.Detach();
+		m_playbackObjects.push_back(spMediaPlayback.Get());
     }
     else
     {
@@ -65,6 +90,8 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
     , m_mediaDevice(nullptr)
     , m_fnStateCallback(nullptr)
 	, m_fnLicenseCallback(nullptr)
+	, m_fnSubtitleEntered(nullptr) 
+	, m_fnSubtitleExited(nullptr)
 	, m_pClientObject(nullptr)
     , m_mediaPlayer(nullptr)
     , m_mediaPlaybackSession(nullptr)
@@ -77,7 +104,7 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
 	, m_bIgnoreEvents(false)
 	, m_readyForFrames(false)
 	, m_noHWDecoding(false)
-	, m_make1080MaxWhenNoHWDecoding(true)
+	, m_make1080MaxWhenNoHWDecoding(true) 
 	, m_playreadyHandler(this, CMediaPlayerPlayback::LicenseRequestInternal)
 {
 }
@@ -95,6 +122,10 @@ CMediaPlayerPlayback::~CMediaPlayerPlayback()
     MFUnlockDXGIDeviceManager();
 
     ReleaseResources();
+
+	auto position = std::find(m_playbackObjects.begin(), m_playbackObjects.end(), this);
+	if(position != m_playbackObjects.end())
+		m_playbackObjects.erase(position);
 }
 
 
@@ -160,8 +191,6 @@ HRESULT CMediaPlayerPlayback::InitializeDevices()
 	Microsoft::WRL::ComPtr<ID3D11VideoDevice> videoDevice;
 	m_mediaDevice.As(&videoDevice);
 	m_noHWDecoding = (videoDevice == nullptr);
-
-	m_gotDeviceLost = false;
 
 	return S_OK;
 }
@@ -716,8 +745,11 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
 {
 	Log(Log_Level_Info, L"CMediaPlayerPlayback::CreateTextures()");
 
-    if (m_gotDeviceLost || nullptr != m_primaryTexture || nullptr != m_primaryTextureSRV)
+    if (m_deviceNotReady ||  nullptr != m_primaryTexture || nullptr != m_primaryTextureSRV)
         ReleaseTextures();
+
+	if (m_deviceNotReady)
+		return E_ABORT;
 
 	HRESULT hr = S_OK;
 
@@ -728,38 +760,12 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
 
     // create staging texture on unity device
     ComPtr<ID3D11Texture2D> spTexture;
-
-	if (!m_gotDeviceLost)
-	{
-		try
-		{
-			hr = m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, &spTexture);
-		}
-		catch (...)
-		{
-			hr = E_FAIL;
-		}
-	}
-	else
-	{
-		hr = DXGI_ERROR_DEVICE_REMOVED;
-	}
-
-	if (FAILED(hr))
-	{
-		m_readyForFrames = false;
-		MFUnlockDXGIDeviceManager();
-		ReleaseResources();
-
-		IFR(InitializeDevices());
-		IFR(m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, &spTexture));
-	}
-
-	m_gotDeviceLost = false;
+	IFR(m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, spTexture.ReleaseAndGetAddressOf()));
 
     auto srvDesc = CD3D11_SHADER_RESOURCE_VIEW_DESC(spTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D);
     ComPtr<ID3D11ShaderResourceView> spSRV;
-    IFR(m_d3dDevice->CreateShaderResourceView(spTexture.Get(), &srvDesc, &spSRV));
+
+	IFR(m_d3dDevice->CreateShaderResourceView(spTexture.Get(), &srvDesc, &spSRV));
 
     // create shared texture from the unity texture
     ComPtr<IDXGIResource1> spDXGIResource;
@@ -930,11 +936,48 @@ void CMediaPlayerPlayback::ReleaseResources()
     m_d3dDevice = nullptr;
 }
 
+void CMediaPlayerPlayback::DeviceLost()
+{
+	PLAYBACK_STATE playbackState;
+	ZeroMemory(&playbackState, sizeof(playbackState));
+	playbackState.type = StateType::StateType_DeviceLost;
+	playbackState.state = PlaybackState::PlaybackState_None;
+
+	try
+	{
+		if (m_fnStateCallback != nullptr)
+			m_fnStateCallback(m_pClientObject, playbackState);
+	}
+	catch (...)
+	{
+	}
+}
+
+void CMediaPlayerPlayback::DeviceRestored()
+{
+	PLAYBACK_STATE playbackState;
+	ZeroMemory(&playbackState, sizeof(playbackState));
+	playbackState.type = StateType::StateType_DeviceRestored;
+	playbackState.state = PlaybackState::PlaybackState_None;
+
+	try
+	{
+		ReleaseResources();
+		InitializeDevices();
+
+		if (m_fnStateCallback != nullptr)
+			m_fnStateCallback(m_pClientObject, playbackState);
+	}
+	catch (...)
+	{
+	}
+}
+
 
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::OnVideoFrameAvailable(IMediaPlayer* sender, IInspectable* arg)
 {
-	if (!m_readyForFrames || m_gotDeviceLost)
+	if (!m_readyForFrames || m_deviceNotReady)
 		return S_OK;
 
     ComPtr<IMediaPlayer> spMediaPlayer(sender);
@@ -944,27 +987,7 @@ HRESULT CMediaPlayerPlayback::OnVideoFrameAvailable(IMediaPlayer* sender, IInspe
 
     if (nullptr != m_primaryMediaSurface)
     {
-        HRESULT hr = spMediaPlayer5->CopyFrameToVideoSurface(m_primaryMediaSurface.Get());
-		
-		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
-		{
-			m_readyForFrames = false;
-			m_gotDeviceLost = true;
-
-			PLAYBACK_STATE playbackState;
-			ZeroMemory(&playbackState, sizeof(playbackState));
-			playbackState.type = StateType::StateType_DeviceLost;
-			playbackState.state = PlaybackState::PlaybackState_None;
-
-			try
-			{
-				if (m_fnStateCallback != nullptr)
-					m_fnStateCallback(m_pClientObject, playbackState);
-			}
-			catch (...)
-			{
-			}
-		}
+        spMediaPlayer5->CopyFrameToVideoSurface(m_primaryMediaSurface.Get());
     }
 
     return S_OK;
@@ -1319,6 +1342,7 @@ HRESULT CMediaPlayerPlayback::OnCueEntered(ABI::Windows::Media::Core::ITimedMeta
 		spLines->get_Size(&size);
 
 	std::vector<const wchar_t*> lines;
+	std::vector<std::wstring> linesStrings;
 	const wchar_t* empty = L"";
 
 	for (unsigned int i = 0; i < size; i++)
@@ -1330,19 +1354,45 @@ HRESULT CMediaPlayerPlayback::OnCueEntered(ABI::Windows::Media::Core::ITimedMeta
 
 		line->get_Text(text.GetAddressOf());
 
-		const wchar_t* textLine = empty;
+		std::wstring textLine = empty;
 		if (text.IsValid())
 			textLine = text.GetRawBuffer(nullptr);
 
-		lines.push_back(textLine);
+		linesStrings.push_back(textLine);
+	}
+
+	for (size_t i = 0; i < linesStrings.size(); i++)
+	{
+		lines.push_back(linesStrings[i].data());
 	}
 
 	Wrappers::HString id;
 	spCue->get_Id(id.GetAddressOf());
+	if (!id.IsValid())
+	{
+		FILETIME ft;
+		GetSystemTimeAsFileTime(&ft);
+
+		unsigned __int64 ft64 = ((unsigned __int64)(ft.dwHighDateTime) << 32) + ft.dwLowDateTime;
+
+		wchar_t timeBuffer[32];
+		memset(timeBuffer, 0, sizeof(wchar_t) * 32);
+		_ui64tow_s(ft64, timeBuffer, 32, 10);
+		id.Set(Wrappers::HString::MakeReference(timeBuffer, (unsigned int)wcslen(timeBuffer)).Get());
+
+		spCue->put_Id(id.Get());
+	}
 
 	if (m_fnSubtitleEntered != nullptr)
 	{
-		m_fnSubtitleEntered(m_pClientObject, trackId.GetRawBuffer(nullptr), id.GetRawBuffer(nullptr), langName.data(), lines.data(), size);
+		try
+		{
+			m_fnSubtitleEntered(m_pClientObject, trackId.GetRawBuffer(nullptr), id.GetRawBuffer(nullptr), langName.data(), lines.data(), size);
+		}
+		catch (...)
+		{
+			Log(Log_Level_Error, L"Exception in m_fnSubtitleEntered callback");
+		}
 	}
 
 	return S_OK;
@@ -1373,7 +1423,14 @@ HRESULT CMediaPlayerPlayback::OnCueExited(ABI::Windows::Media::Core::ITimedMetad
 
 	if (m_fnSubtitleExited != nullptr)
 	{
-		m_fnSubtitleExited(m_pClientObject, trackId.GetRawBuffer(nullptr), cueId.GetRawBuffer(nullptr));
+		try
+		{
+			m_fnSubtitleExited(m_pClientObject, trackId.GetRawBuffer(nullptr), cueId.GetRawBuffer(nullptr));
+		}
+		catch (...)
+		{
+			Log(Log_Level_Error, L"Exception in m_fnSubtitleExited callback");
+		}
 	}
 
 	return S_OK;

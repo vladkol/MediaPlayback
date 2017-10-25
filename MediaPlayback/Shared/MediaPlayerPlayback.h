@@ -12,6 +12,7 @@
 
 #include <vector>
 #include <string>
+#include <mutex>
 
 #ifndef NO_FFMPEG
 	#include "FFMpegInterop\FFmpegInteropMSS.h"
@@ -25,7 +26,8 @@ enum class StateType : UINT32
     StateType_Opened,
     StateType_StateChanged,
     StateType_Failed,
-	StateType_DeviceLost
+	StateType_DeviceLost,
+	StateType_DeviceRestored
 };
 
 enum class PlaybackState : UINT32
@@ -73,10 +75,10 @@ extern "C" typedef void(UNITY_INTERFACE_API *DRMLicenseRequestedCallback)(
 	_In_ void* pClientObject);
 
 extern "C" typedef void(UNITY_INTERFACE_API *SubtitleItemEnteredCallback)(
-	_In_ void* pClientObject, const wchar_t* subtitlesTrackId, const wchar_t* textCueId, const wchar_t* language, const wchar_t** textLines, unsigned int lineCount);
+	_In_ void* pClientObject, _In_ const wchar_t* subtitlesTrackId, _In_ const wchar_t* textCueId, _In_ const wchar_t* language, _In_ const wchar_t** textLines, _In_ unsigned int lineCount);
 
 extern "C" typedef void(UNITY_INTERFACE_API *SubtitleItemExitedCallback)(
-	_In_ void* pClientObject, const wchar_t* subtitlesTrackId, const wchar_t* textCueId);
+	_In_ void* pClientObject, _In_ const wchar_t* subtitlesTrackId, _In_ const wchar_t* textCueId);
 
 
 typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Playback::MediaPlayer*, IInspectable*> IMediaPlayerEventHandler;
@@ -112,6 +114,10 @@ class CMediaPlayerPlayback
     , Microsoft::WRL::FtmBase>
 {
 public:
+
+	static void ReportDeviceLost();
+	static void ReportDeviceReady();
+
     static HRESULT CreateMediaPlayback(
         _In_ UnityGfxRenderer apiType, 
         _In_ IUnityInterfaces* pUnityInterfaces, 
@@ -204,6 +210,9 @@ private:
 
     void ReleaseResources();
 
+	void DeviceLost();
+	void DeviceRestored();
+
 private:
 	IUnityGraphicsD3D11*				 m_pUnityGraphics;
 
@@ -254,9 +263,12 @@ private:
 
 	std::vector<SUBTITLE_TRACK> m_subtitleTracks;
 
-	bool m_gotDeviceLost;
 	bool m_readyForFrames;
 	bool m_noHWDecoding;
 	bool m_make1080MaxWhenNoHWDecoding;
+
+private:
+	static bool m_deviceNotReady;
+	static std::vector<CMediaPlayerPlayback*> m_playbackObjects;
 };
 
