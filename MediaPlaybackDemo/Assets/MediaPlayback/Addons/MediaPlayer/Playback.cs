@@ -94,7 +94,7 @@ namespace MediaPlayer
 
         public VideoLayout layout = VideoLayout.Mono;
 
-        public float textureOffsetX = 0.25f;
+        public float textureOffsetX = 0.0f;
         public float textureOffsetY = 0.0f;
 
         public bool UseFFMPEG = false;
