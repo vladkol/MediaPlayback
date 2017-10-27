@@ -27,24 +27,41 @@ using namespace Windows::Foundation;
 
 bool CMediaPlayerPlayback::m_deviceNotReady = false;
 std::vector<CMediaPlayerPlayback*> CMediaPlayerPlayback::m_playbackObjects;
+Microsoft::WRL::Wrappers::Mutex CMediaPlayerPlayback::m_playbackVectorMutex(::CreateMutex(nullptr, FALSE, nullptr));
 
 void CMediaPlayerPlayback::ReportDeviceLost()
 {
+	auto lock = m_playbackVectorMutex.Lock();
 	m_deviceNotReady = true;
 
 	for (size_t i = 0; i < m_playbackObjects.size(); i++)
 	{
-		m_playbackObjects[i]->DeviceLost();
+		try
+		{
+			if (m_playbackObjects[i] != nullptr && !m_playbackObjects[i]->m_releasing)
+				m_playbackObjects[i]->DeviceLost();
+		}
+		catch (...)
+		{
+		}
 	}
 }
 
 void CMediaPlayerPlayback::ReportDeviceReady()
 {
+	auto lock = m_playbackVectorMutex.Lock();
 	m_deviceNotReady = false;
 
 	for (size_t i = 0; i < m_playbackObjects.size(); i++)
 	{
-		m_playbackObjects[i]->DeviceRestored();
+		try
+		{
+			if (m_playbackObjects[i] != nullptr && !m_playbackObjects[i]->m_releasing)
+				m_playbackObjects[i]->DeviceRestored();
+		}
+		catch (...)
+		{
+		}
 	}
 }
 
@@ -73,6 +90,8 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayback(
         IFR(MakeAndInitialize<CMediaPlayerPlayback>(&spMediaPlayback, fnCallback, pClientObject, d3d));
 
         *ppMediaPlayback = spMediaPlayback.Detach();
+
+		auto lock = m_playbackVectorMutex.Lock();
 		m_playbackObjects.push_back(spMediaPlayback.Get());
     }
     else
@@ -105,6 +124,7 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
 	, m_readyForFrames(false)
 	, m_noHWDecoding(false)
 	, m_make1080MaxWhenNoHWDecoding(true) 
+	, m_releasing(false)
 	, m_playreadyHandler(this, CMediaPlayerPlayback::LicenseRequestInternal)
 {
 }
@@ -112,6 +132,10 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
 _Use_decl_annotations_
 CMediaPlayerPlayback::~CMediaPlayerPlayback()
 {
+	m_releasing = true;
+
+	auto lock = m_playbackVectorMutex.Lock();
+
 	m_readyForFrames = false;
 	m_bIgnoreEvents = true;
 
@@ -124,8 +148,8 @@ CMediaPlayerPlayback::~CMediaPlayerPlayback()
     ReleaseResources();
 
 	auto position = std::find(m_playbackObjects.begin(), m_playbackObjects.end(), this);
-	if(position != m_playbackObjects.end())
-		m_playbackObjects.erase(position);
+	if (position != m_playbackObjects.end())
+		(*position) = nullptr;
 }
 
 

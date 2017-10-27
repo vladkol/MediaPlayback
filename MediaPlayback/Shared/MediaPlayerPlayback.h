@@ -266,9 +266,11 @@ private:
 	bool m_readyForFrames;
 	bool m_noHWDecoding;
 	bool m_make1080MaxWhenNoHWDecoding;
+	bool m_releasing;
 
 private:
 	static bool m_deviceNotReady;
 	static std::vector<CMediaPlayerPlayback*> m_playbackObjects;
+	static Microsoft::WRL::Wrappers::Mutex m_playbackVectorMutex;
 };
 
