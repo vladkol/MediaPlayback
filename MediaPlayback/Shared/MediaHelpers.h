@@ -19,6 +19,8 @@
 #include <windows.media.streaming.adaptive.h>
 #include <windows.graphics.directx.direct3d11.interop.h>
 
+#include <wrl.h>
+
 #ifndef NO_FFMPEG
 	#include "FFMpegInterop\FFmpegInteropMSS.h"
 #endif 
@@ -82,3 +84,24 @@ HRESULT GetTextureFromSurface(
 HRESULT CreateMediaDevice(
     _In_opt_ IDXGIAdapter* pDXGIAdapter,
     _COM_Outptr_ ID3D11Device** ppDevice);
+
+
+__inline void CreateUInt32Reference(
+	_In_ UINT32 value,
+	_Outptr_ ABI::Windows::Foundation::IReference<UINT32>** reference
+)
+{
+	Microsoft::WRL::ComPtr<IActivationFactory> spFactory;
+	Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IPropertyValueStatics> spPropertyValueFactory;
+	Microsoft::WRL::ComPtr<IInspectable> spProperty;
+	*reference = nullptr;
+
+	ABI::Windows::Foundation::GetActivationFactory(
+		Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Foundation_PropertyValue).Get(),
+		spFactory.GetAddressOf()
+	);
+	spFactory.As(&spPropertyValueFactory);
+
+	spPropertyValueFactory->CreateUInt32(value, &spProperty);
+	spProperty.CopyTo(reference);
+}

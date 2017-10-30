@@ -18,6 +18,9 @@
 	#include "FFMpegInterop/FFmpegInteropMSS.h"
 #endif
 
+#define _Estimated1080pBitrate_ ((UINT32)(13*1000*1000))
+#define _absdiff(x, y) ((x) < (y) ? (y)-(x) : (x)-(y))
+
 using namespace Microsoft::WRL;
 using namespace ABI::Windows::Graphics::DirectX::Direct3D11;
 using namespace ABI::Windows::Media;
@@ -313,11 +316,12 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 			OutputDebugStringW(L"We have an Adaptive Streaming media source!\n");
 
 			// Here we make sure that we start at the highest available bitrate. 
-			// If hardware video decoding is not supported, we don't change anything. 
+			// If hardware video decoding is not supported, we limit the max bitrate to an available bitrate that is close to ~16Mbps. 
 			// Remove this piece if you don't want to override the default behaviour. 
 			Microsoft::WRL::ComPtr<ABI::Windows::Foundation::Collections::IVectorView<UINT32>> spAvailableBitrates;
 			m_spAdaptiveMediaSource->get_AvailableBitrates(&spAvailableBitrates);
-			if (!m_noHWDecoding && spAvailableBitrates.Get() != nullptr)
+			
+			if (spAvailableBitrates.Get() != nullptr)
 			{
 				unsigned int size = 0;
 				spAvailableBitrates->get_Size(&size);
@@ -325,23 +329,45 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 				if (size > 1)
 				{
 					UINT32 maxBR = 0;
+					UINT32 closestTo1080BR = 0;
+					UINT32 _1080Diff = UINT_MAX;
+
 					for (unsigned int i = 0; i < size; i++)
 					{
 						UINT32 uBR = 0;
 						spAvailableBitrates->GetAt(i, &uBR);
+						if (!uBR)
+							continue;
+
 						if (uBR > maxBR)
 							maxBR = uBR;
+
+						if (_1080Diff > _absdiff(uBR, _Estimated1080pBitrate_))
+						{
+							closestTo1080BR = uBR;
+							_1080Diff = _absdiff(uBR, _Estimated1080pBitrate_);
+						}
 					}
 
-					if (maxBR > 0)
+					if (!m_noHWDecoding && maxBR > 0)
 					{
+						Log(Log_Level_Any, L"Setting initial bitrate to max: %u\n", maxBR);
 						m_spAdaptiveMediaSource->put_InitialBitrate(maxBR);
 					}
+					else if (m_noHWDecoding && closestTo1080BR != 0)
+					{
+						ComPtr<ABI::Windows::Foundation::IReference<UINT32>> spValue;
+						CreateUInt32Reference(closestTo1080BR, &spValue);
 
-					Log(Log_Level_Any, L"Setting initial bitrate to max: %u\n", maxBR);
+						Log(Log_Level_Any, L"Setting desired max bitrate to %u\n", closestTo1080BR);
+						m_spAdaptiveMediaSource->put_DesiredMaxBitrate(spValue.Get());
+					}
+
+					
 				}
 			}
-			// end of selecting the higest available bitrate as initial 
+			// end of selecting the higest available bitrate as initial or limiting the max bitrate if no HW decoding
+
 
 			OutputDebugStringW(L"Adding DownloadRequested handler...");
 			auto downloadRequested = Microsoft::WRL::Callback<IDownloadRequestedEventHandler>(this, &CMediaPlayerPlayback::OnDownloadRequested);
