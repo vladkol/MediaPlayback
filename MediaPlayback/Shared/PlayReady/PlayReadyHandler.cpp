@@ -33,8 +33,11 @@ HRESULT PlayReadyHandler::InitalizeProtectionManager()
 	IFR(ActivateInstance(HStringReference(RuntimeClass_Windows_Foundation_Collections_PropertySet).Get(), &spPropertySet));
 	IFR(spPropertySet.As(&spMap));
 
+#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	AddStringProperty(spMap.Get(), L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}", L"Windows.Media.Protection.PlayReady.PlayReadyWinRTTrustedInput");
+#else
 	AddStringProperty(spMap.Get(), L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}", L"Microsoft.Media.PlayReadyClient.PlayReadyWinRTTrustedInput");
-    AddStringProperty(spMap.Get(), L"{F4637010-03C3-42CD-B932-B48ADF3A6A54}", L"Windows.Media.Protection.PlayReady.PlayReadyWinRTTrustedInput");
+#endif
 
 	ComPtr<IPropertySet> spPMPropertySet;
 	ComPtr<IMap<HSTRING, IInspectable*>> spPMPropertySetMap;

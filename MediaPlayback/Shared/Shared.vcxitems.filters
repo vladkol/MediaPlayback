@@ -61,7 +61,9 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaHelpers.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.h">
+      <Filter>PlayReady</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)pch.cpp" />
@@ -92,6 +94,8 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaHelpers.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.cpp">
+      <Filter>PlayReady</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
