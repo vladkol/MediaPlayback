@@ -237,3 +237,52 @@ public:
 
 #define shared_from_this please_use_GetSharedPtr_or_GetWeakPtr_instead_of_shared_from_this
 #define enable_shared_from_this please_use_SharedFromThis_instead_of_enable_shared_from_this
+
+
+static HRESULT AddStringProperty(ABI::Windows::Foundation::Collections::IMap<HSTRING, IInspectable*>* pIMap, PCWSTR key, PCWSTR value)
+{
+	Microsoft::WRL::ComPtr<IActivationFactory> spGenericActivationFactoryInterface;
+	Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IPropertyValueStatics> pFactory;
+
+	IFR(Windows::Foundation::GetActivationFactory(Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Foundation_PropertyValue).Get(), &spGenericActivationFactoryInterface));
+	IFR(spGenericActivationFactoryInterface.As(&pFactory));
+
+	Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IPropertyValue> spValue;
+	IFR(pFactory->CreateString(Microsoft::WRL::Wrappers::HStringReference(value).Get(), &spValue));
+
+	boolean replaced;
+	return pIMap->Insert(Microsoft::WRL::Wrappers::HStringReference(key).Get(),
+		spValue.Get(), &replaced);
+}
+
+static HRESULT AddBooleanProperty(ABI::Windows::Foundation::Collections::IMap<HSTRING, IInspectable*>* pIMap, PCWSTR key, bool value)
+{
+	Microsoft::WRL::ComPtr<IActivationFactory> spGenericActivationFactoryInterface;
+	Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IPropertyValueStatics> pFactory;
+
+	IFR(Windows::Foundation::GetActivationFactory(Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Foundation_PropertyValue).Get(), &spGenericActivationFactoryInterface));
+	IFR(spGenericActivationFactoryInterface.As(&pFactory));
+
+	Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IPropertyValue> spValue;
+	IFR(pFactory->CreateBoolean(value, &spValue));
+
+	boolean replaced;
+	return pIMap->Insert(Microsoft::WRL::Wrappers::HStringReference(key).Get(),
+		spValue.Get(), &replaced);
+}
+
+static HRESULT AddInt64Property(ABI::Windows::Foundation::Collections::IMap<HSTRING, IInspectable*>* pIMap, PCWSTR key, __int64 value)
+{
+	Microsoft::WRL::ComPtr<IActivationFactory> spGenericActivationFactoryInterface;
+	Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IPropertyValueStatics> pFactory;
+
+	IFR(Windows::Foundation::GetActivationFactory(Microsoft::WRL::Wrappers::HStringReference(RuntimeClass_Windows_Foundation_PropertyValue).Get(), &spGenericActivationFactoryInterface));
+	IFR(spGenericActivationFactoryInterface.As(&pFactory));
+
+	Microsoft::WRL::ComPtr<ABI::Windows::Foundation::IPropertyValue> spValue;
+	IFR(pFactory->CreateInt64(value, &spValue));
+
+	boolean replaced;
+	return pIMap->Insert(Microsoft::WRL::Wrappers::HStringReference(key).Get(),
+		spValue.Get(), &replaced);
+}

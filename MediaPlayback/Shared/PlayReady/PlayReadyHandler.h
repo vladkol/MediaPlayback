@@ -28,38 +28,6 @@ public:
 		assert(objectThis);
 	}
 
-	static HRESULT AddStringProperty(ABI::Windows::Foundation::Collections::IMap<HSTRING, IInspectable*>* pIMap, PCWSTR key, PCWSTR value)
-	{
-		ComPtr<IActivationFactory> spGenericActivationFactoryInterface;
-		ComPtr<ABI::Windows::Foundation::IPropertyValueStatics> pFactory;
-
-		IFR(Windows::Foundation::GetActivationFactory(Wrappers::HStringReference(RuntimeClass_Windows_Foundation_PropertyValue).Get(), &spGenericActivationFactoryInterface));
-		IFR(spGenericActivationFactoryInterface.As(&pFactory));
-
-		ComPtr<ABI::Windows::Foundation::IPropertyValue> spValue;
-		IFR(pFactory->CreateString(Wrappers::HStringReference(value).Get(), &spValue));
-
-		boolean replaced;
-		return pIMap->Insert(Wrappers::HStringReference(key).Get(),
-			spValue.Get(), &replaced);
-	}
-
-	static HRESULT AddBooleanProperty(ABI::Windows::Foundation::Collections::IMap<HSTRING, IInspectable*>* pIMap, PCWSTR key, bool value)
-	{
-		ComPtr<IActivationFactory> spGenericActivationFactoryInterface;
-		ComPtr<ABI::Windows::Foundation::IPropertyValueStatics> pFactory;
-
-		IFR(Windows::Foundation::GetActivationFactory(Wrappers::HStringReference(RuntimeClass_Windows_Foundation_PropertyValue).Get(), &spGenericActivationFactoryInterface));
-		IFR(spGenericActivationFactoryInterface.As(&pFactory));
-
-		ComPtr<ABI::Windows::Foundation::IPropertyValue> spValue; 
-		IFR(pFactory->CreateBoolean(value, &spValue));
-
-		boolean replaced;
-		return pIMap->Insert(Wrappers::HStringReference(key).Get(),
-			spValue.Get(), &replaced);
-	}
-
 
 	HRESULT InitalizeProtectionManager();
 

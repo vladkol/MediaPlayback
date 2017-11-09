@@ -23,7 +23,7 @@
     <ProjectGuid>{E0656E50-00DD-4E56-9207-A415F7AB1F41}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Desktop</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
     <SccProjectName>SAK</SccProjectName>
     <SccAuxPath>SAK</SccAuxPath>
     <SccLocalPath>SAK</SccLocalPath>

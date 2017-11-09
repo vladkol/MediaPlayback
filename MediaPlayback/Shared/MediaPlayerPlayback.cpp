@@ -21,6 +21,10 @@
 #define _Estimated1080pBitrate_ ((UINT32)(13*1000*1000))
 #define _absdiff(x, y) ((x) < (y) ? (y)-(x) : (x)-(y))
 
+#include <initguid.h>
+DEFINE_GUID(DXVA_NoEncrypt, 0x1b81beD0, 0xa0c7, 0x11d3, 0xb9, 0x84, 0x00, 0xc0, 0x4f, 0x2e, 0x73, 0xc5);
+DEFINE_GUID(D3D11_DECODER_PROFILE_H264_VLD_NOFGT,    0x1b81be68, 0xa0c7, 0x11d3, 0xb9, 0x84, 0x00, 0xc0, 0x4f, 0x2e, 0x73, 0xc5);
+
 using namespace Microsoft::WRL;
 using namespace ABI::Windows::Graphics::DirectX::Direct3D11;
 using namespace ABI::Windows::Media;
@@ -215,9 +219,43 @@ HRESULT CMediaPlayerPlayback::InitializeDevices()
 	m_d3dDevice.Attach(spDevice.Detach());
 	m_mediaDevice.Attach(spMediaDevice.Detach());
 
+
+	// check if our GPU support hardware video decoding 
+	m_noHWDecoding = false;
+
 	Microsoft::WRL::ComPtr<ID3D11VideoDevice> videoDevice;
 	m_mediaDevice.As(&videoDevice);
-	m_noHWDecoding = (videoDevice == nullptr);
+
+	// No hardware decoding support at all? 
+	if (videoDevice == nullptr)
+	{
+		m_noHWDecoding = true;
+	}
+	else // ok, it supports hadrware decoding in general, let's check in it supports 4K decoding 
+	{
+		D3D11_VIDEO_DECODER_DESC desc = { 0 };
+		D3D11_VIDEO_DECODER_CONFIG config = { 0 };
+
+		desc.Guid = D3D11_DECODER_PROFILE_H264_VLD_NOFGT;
+		desc.OutputFormat = DXGI_FORMAT_NV12;
+		desc.SampleHeight = 4096u;
+		desc.SampleWidth = 4096u;
+
+		config.guidConfigBitstreamEncryption = DXVA_NoEncrypt;
+		config.guidConfigMBcontrolEncryption = DXVA_NoEncrypt; 
+		config.guidConfigResidDiffEncryption = DXVA_NoEncrypt;
+		config.ConfigBitstreamRaw = 1;
+		config.ConfigResidDiffAccelerator = 1;
+		config.ConfigHostInverseScan = 1;
+		config.ConfigSpecificIDCT = 2;
+
+		Microsoft::WRL::ComPtr<ID3D11VideoDecoder> videoDecoder;
+		videoDevice->CreateVideoDecoder(&desc, &config, &videoDecoder);
+		if (!videoDecoder)
+		{
+			m_noHWDecoding = true;
+		}
+	}
 
 	return S_OK;
 }
@@ -402,9 +440,6 @@ HRESULT CMediaPlayerPlayback::Play()
 
     if (nullptr != m_mediaPlayer)
     {
-        MediaPlayerState state;
-        LOG_RESULT(m_mediaPlayer->get_CurrentState(&state));
-
         IFR(m_mediaPlayer->Play());
 		return S_OK;
     }
@@ -617,10 +652,6 @@ HRESULT CMediaPlayerPlayback::SetDRMLicense(_In_ LPCWSTR pszlicenseServiceURL, _
 {
 	Log(Log_Level_Info, L"CMediaPlayerPlayback::SetDRMLicense()");
 
-	Log(Log_Level_Info, L"Switching DRM License to %S (%S)",
-		pszlicenseServiceURL != nullptr ? pszlicenseServiceURL : L"<nullptr>",
-		pszCustomChallendgeData != nullptr ? L"has custom challendge data" : L"(no custom  challendge data)");
-
 	if(m_currentLicenseServiceURL != nullptr)
 		m_currentLicenseServiceURL.Release();
 	if (m_currentLicenseCustomChallendge != nullptr)
@@ -726,7 +757,7 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayer()
     auto videoFrameAvailableCallback = Microsoft::WRL::Callback<IMediaPlayerEventHandler>(this, &CMediaPlayerPlayback::OnVideoFrameAvailable);
     IFR(spMediaPlayer5->add_VideoFrameAvailable(videoFrameAvailableCallback.Get(), &videoFrameAvailableToken));
 
-    // store the player and token
+    // store the player and token 
 	m_mediaPlayer = nullptr;
 
     m_mediaPlayer.Attach(spMediaPlayer.Detach());

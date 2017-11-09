@@ -107,6 +107,9 @@ public class MediaItemsUI : MonoBehaviour
             case "Stop":
                 this.mediaPlayback.Stop();
                 break;
+            case "Go 360":
+                UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(1);
+                break;
             default:
                 Debug.LogWarningFormat("Button '{0}' not handled.", label.text);
                 break;
