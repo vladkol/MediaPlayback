@@ -1,4 +1,4 @@
- # MediaPlayback
+ # Media Playback for Unity on Windows 10
 
 Media Playback plugin for [Unity](https://unity3d.com/) on Windows 10 Fall Creators Update. 
 
