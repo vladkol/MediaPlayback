@@ -1,4 +1,15 @@
-﻿Shader "360Video/VideoRevertNormals" 
+﻿//*********************************************************
+//
+// Copyright (c) Microsoft. All rights reserved.
+// This code is licensed under the MIT License (MIT).
+// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
+//
+//*********************************************************
+
+Shader "360Video/VideoRevertNormals" 
 {
 	Properties{
 		_MainTex("Base (RGB)", 2D) = "white" {}
@@ -6,7 +17,7 @@
 
 		SubShader{
 		Tags{ "RenderType" = "Opaque" }
-		Cull front    // ADDED BY BERNIE, TO FLIP THE SURFACES
+		Cull front
 		LOD 100
 
 		Pass{

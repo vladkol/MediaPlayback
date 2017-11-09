@@ -1,27 +1,33 @@
-﻿using System;
+﻿//*********************************************************
+//
+// Copyright (c) Microsoft. All rights reserved.
+// This code is licensed under the MIT License (MIT).
+// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
+//
+//*********************************************************
+
+using System;
 using System.Text;
 using UnityEngine;
 
 namespace UnityEngine.EventSystems
 {
-    // Gaze Input Module by Peter Koch <peterept@gmail.com>
     using UnityEngine;
     using UnityEngine.EventSystems;
     using System.Collections.Generic;
 
-    // To use:
-    // 1. Drag onto your EventSystem game object.
-    // 2. Make sure your Canvas is in world space and has a GraphicRaycaster (should by default).
-    // 3. If you have multiple cameras then make sure to drag your VR (center eye) camera into the canvas.
     public class GazeBasicInputModule : PointerInputModule
     {
-        public enum Mode { Click = 0, Gaze };
+        public enum Mode { SubmitOrClick = 0, Gaze };
         public Mode mode;
 
         [Header("Click Settings")]
-        public string ClickInputName = "Submit";
+        public string SubmitInputName = "Submit";
         [Header("Gaze Settings")]
-        public float GazeTimeInSeconds = 2f;
+        public float GazingTime = 2f;
 
         public RaycastResult CurrentRaycast;
 
@@ -117,13 +123,13 @@ namespace UnityEngine.EventSystems
                 if (currentLookAtHandler != handler)
                 {
                     currentLookAtHandler = handler;
-                    currentLookAtHandlerClickTime = Time.realtimeSinceStartup + GazeTimeInSeconds;
+                    currentLookAtHandlerClickTime = Time.realtimeSinceStartup + GazingTime;
                 }
 
                 // if we have a handler and it's time to click, do it now
                 if (currentLookAtHandler != null &&
                     (mode == Mode.Gaze && Time.realtimeSinceStartup > currentLookAtHandlerClickTime) ||
-                    (mode == Mode.Click && Input.GetButtonDown(ClickInputName)))
+                    (mode == Mode.SubmitOrClick && Input.GetButtonDown(SubmitInputName)))
                 {
                     ExecuteEvents.ExecuteHierarchy(currentLookAtHandler, pointerEventData, ExecuteEvents.pointerClickHandler);
                     currentLookAtHandlerClickTime = float.MaxValue;
