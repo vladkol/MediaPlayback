@@ -9,7 +9,7 @@
 //
 //*********************************************************
 
-Shader "360Video/VideoRevertNormals" 
+Shader "360Video/VideoRevertNormals"
 {
 	Properties{
 		_MainTex("Base (RGB)", 2D) = "white" {}
