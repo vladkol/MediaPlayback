@@ -82,12 +82,12 @@ extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API CreatePlaybackText
     return spMediaPlayback->CreatePlaybackTexture(width, height, ppvTexture);
 }
 
-extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LoadContent(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ BOOL useFFmpeg, _In_ BOOL forceVideoDecode, _In_ LPCWSTR pszContentLocation)
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LoadContent(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ LPCWSTR pszContentLocation)
 {
     NULL_CHK(pszContentLocation);
     NULL_CHK(spMediaPlayback);
     
-    return spMediaPlayback->LoadContent(useFFmpeg, forceVideoDecode, pszContentLocation);
+    return spMediaPlayback->LoadContent(pszContentLocation);
 }
 
 extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API Play(_In_ IMediaPlayerPlayback* spMediaPlayback)

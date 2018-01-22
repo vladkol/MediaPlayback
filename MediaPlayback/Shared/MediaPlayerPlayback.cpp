@@ -14,10 +14,6 @@
 #include "MediaPlayerPlayback.h"
 #include "MediaHelpers.h"
 
-#ifndef NO_FFMPEG
-	#include "FFMpegInterop/FFmpegInteropMSS.h"
-#endif
-
 #define _Estimated1080pBitrate_ ((UINT32)(13*1000*1000))
 #define _absdiff(x, y) ((x) < (y) ? (y)-(x) : (x)-(y))
 
@@ -299,10 +295,7 @@ HRESULT CMediaPlayerPlayback::CreatePlaybackTexture(
 }
 
 _Use_decl_annotations_
-HRESULT CMediaPlayerPlayback::LoadContent(
-    BOOL useFFmpeg,
-    BOOL forceVideoDecode, 
-    LPCWSTR pszContentLocation)
+HRESULT CMediaPlayerPlayback::LoadContent(LPCWSTR pszContentLocation)
 {
     Log(Log_Level_Info, L"CMediaPlayerPlayback::LoadContent()");
 
@@ -327,20 +320,7 @@ HRESULT CMediaPlayerPlayback::LoadContent(
 
     // create the media source for content (fromUri)
     ComPtr<IMediaSource2> spMediaSource2;
-    if (useFFmpeg)
-    {
-#ifndef NO_FFMPEG
-        // true for audio will be uncompressed
-        IFR(CreateFFmpegMediaSource(pszContentLocation, true, forceVideoDecode, &m_ffmpegInteropMSS, &spMediaSource2));
-#else
-		OutputDebugStringW(L"\n### The library is built without FFMPEG support! ###\n");
-		IFR(E_UNEXPECTED);
-#endif
-    }
-    else
-    {
-        IFR(CreateMediaSource(pszContentLocation, &spMediaSource2));
-    }
+	IFR(CreateMediaSource(pszContentLocation, &spMediaSource2));
 
 	Microsoft::WRL::ComPtr<ABI::Windows::Media::Core::IMediaSource4> spMediaSource4;
 	spMediaSource2.As(&spMediaSource4);

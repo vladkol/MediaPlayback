@@ -4,9 +4,6 @@
     <Filter Include="Unity">
       <UniqueIdentifier>{731ff1bd-ba9d-4341-8f7e-aed57bc4dd54}</UniqueIdentifier>
     </Filter>
-    <Filter Include="FFmpegInterop">
-      <UniqueIdentifier>{0cc04060-db0d-4357-a813-01c9489d059e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="PlayReady">
       <UniqueIdentifier>{1c975ed4-e494-4020-82c7-80d2f17b2b63}</UniqueIdentifier>
     </Filter>
@@ -14,18 +11,6 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)pch.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)targetver.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\FFmpegInteropMSS.h">
-      <Filter>FFmpegInterop</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\FFmpegReader.h">
-      <Filter>FFmpegInterop</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\H264AVCSampleProvider.h">
-      <Filter>FFmpegInterop</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\H264SampleProvider.h">
-      <Filter>FFmpegInterop</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Unity\IUnityGraphics.h">
       <Filter>Unity</Filter>
     </ClInclude>
@@ -44,18 +29,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Unity\IUnityInterface.h">
       <Filter>Unity</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\MediaSampleProvider.h">
-      <Filter>FFmpegInterop</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedAudioSampleProvider.h">
-      <Filter>FFmpegInterop</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedSampleProvider.h">
-      <Filter>FFmpegInterop</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedVideoSampleProvider.h">
-      <Filter>FFmpegInterop</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)Unity\PlatformBase.h">
       <Filter>Unity</Filter>
     </ClInclude>
@@ -68,30 +41,6 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)pch.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)dllmain.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\FFmpegInteropMSS.cpp">
-      <Filter>FFmpegInterop</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\FFmpegReader.cpp">
-      <Filter>FFmpegInterop</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\H264AVCSampleProvider.cpp">
-      <Filter>FFmpegInterop</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\H264SampleProvider.cpp">
-      <Filter>FFmpegInterop</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\MediaSampleProvider.cpp">
-      <Filter>FFmpegInterop</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedAudioSampleProvider.cpp">
-      <Filter>FFmpegInterop</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedSampleProvider.cpp">
-      <Filter>FFmpegInterop</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedVideoSampleProvider.cpp">
-      <Filter>FFmpegInterop</Filter>
-    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaHelpers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.cpp">

@@ -18,14 +18,6 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\FFmpegInteropMSS.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\FFmpegReader.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\H264AVCSampleProvider.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\H264SampleProvider.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\MediaSampleProvider.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedAudioSampleProvider.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedSampleProvider.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedVideoSampleProvider.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaHelpers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)pch.cpp">
@@ -35,14 +27,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\FFmpegInteropMSS.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\FFmpegReader.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\H264AVCSampleProvider.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\H264SampleProvider.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\MediaSampleProvider.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedAudioSampleProvider.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedSampleProvider.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)FFMpegInterop\UncompressedVideoSampleProvider.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaHelpers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)pch.h" />

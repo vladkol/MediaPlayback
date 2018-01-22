@@ -11,10 +11,6 @@
 
 #pragma once
 
-// uncomment next line if you want to build the library without FFMPEG support and dependencies 
-#define NO_FFMPEG 1
-
-
 #include "targetver.h"
 
 #ifndef WIN32_LEAN_AND_MEAN

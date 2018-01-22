@@ -21,10 +21,6 @@
 
 #include <wrl.h>
 
-#ifndef NO_FFMPEG
-	#include "FFMpegInterop\FFmpegInteropMSS.h"
-#endif 
-
 #include <string>
 
 __inline void replaceAll(std::wstring& str, const std::wstring& from, const std::wstring& to) {
@@ -49,17 +45,6 @@ DECLARE_INTERFACE_IID_(IAdaptiveMediaSourceCompletedCallback, IUnknown, "e25c01d
 HRESULT CreateMediaSource(
     _In_ LPCWSTR pszUrl,
     _COM_Outptr_ ABI::Windows::Media::Core::IMediaSource2** ppMediaSource);
-
-#ifndef NO_FFMPEG
-
-HRESULT CreateFFmpegMediaSource(
-    _In_ LPCWSTR pszUrl,
-    _In_ bool forceAudioDecode,
-    _In_ bool forceVideoDecode,
-    _COM_Outptr_ FFmpegInterop::IFFmpegInteropMSS** ppFFmpegMSS,
-    _COM_Outptr_ ABI::Windows::Media::Core::IMediaSource2** ppMediaSource);
-
-#endif 
 
 HRESULT CreateAdaptiveMediaSource(
     _In_ LPCWSTR pszManifestLocation,

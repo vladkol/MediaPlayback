@@ -18,8 +18,6 @@ public class MediaItemsUI : MonoBehaviour
 {
     public List<string> UrlItems = new List<string>();
     public List<string> LocalItems = new List<string>();
-    public List<string> FFmpegHardwareItems = new List<string>();
-    public List<string> FFmpegSoftwareItems = new List<string>();
 
     private Playback mediaPlayback;
     private Dropdown mediaList;
@@ -55,8 +53,6 @@ public class MediaItemsUI : MonoBehaviour
         this.mediaList.ClearOptions();
         this.mediaList.AddOptions(this.LocalItems);
         this.mediaList.AddOptions(this.UrlItems);
-        this.mediaList.AddOptions(this.FFmpegHardwareItems);
-        this.mediaList.AddOptions(this.FFmpegSoftwareItems);
 
         var buttonList = GetComponentsInChildren<Button>();
         if (buttonList.Length == 0)
@@ -85,20 +81,7 @@ public class MediaItemsUI : MonoBehaviour
         {
             case "Play":
                 var selectedItem = mediaList.options[mediaList.value].text;
-                var ffmpegHardwareItem = FFmpegHardwareItems.Find(x => x.Contains(selectedItem));
-                var fmpegSoftwareItem = FFmpegSoftwareItems.Find(x => x.Contains(selectedItem));
-                if (ffmpegHardwareItem != null)
-                {
-                    this.mediaPlayback.PlayWithFFmpeg(selectedItem, false);
-                }
-                else if (fmpegSoftwareItem != null)
-                {
-                    this.mediaPlayback.PlayWithFFmpeg(selectedItem, true);
-                }
-                else
-                {
-                    this.mediaPlayback.Play(selectedItem);
-                }
+                this.mediaPlayback.Play(selectedItem);
 
                 break;
             case "Pause":
@@ -107,7 +90,7 @@ public class MediaItemsUI : MonoBehaviour
             case "Stop":
                 this.mediaPlayback.Stop();
                 break;
-            case "Go 360":
+            case "Go 360 3D":
                 UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(1);
                 break;
             default:

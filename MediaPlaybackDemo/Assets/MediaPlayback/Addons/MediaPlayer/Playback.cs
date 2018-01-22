@@ -97,9 +97,6 @@ namespace MediaPlayer
         public float textureOffsetX = 0.0f;
         public float textureOffsetY = 0.0f;
 
-        public bool UseFFMPEG = false;
-        public bool SoftwareDecode = false;
-
         public bool usePlayReadyDRM = false;
 
         public PlaybackState State
@@ -187,7 +184,7 @@ namespace MediaPlayer
                 InitializePlayReady();
             }
 
-            loaded = (0 == CheckHR(Plugin.LoadContent(pluginInstance, UseFFMPEG, SoftwareDecode, uriStr)));
+            loaded = (0 == CheckHR(Plugin.LoadContent(pluginInstance, uriStr)));
             if (loaded)
             {
                 currentItem = uriOrPath;
@@ -217,13 +214,6 @@ namespace MediaPlayer
         public Texture2D GetVideoTexture()
         {
             return playbackTexture;
-        }
-
-        internal void PlayWithFFmpeg(string selectedItem, bool softwareDecode)
-        {
-            CheckHR(Plugin.LoadContent(pluginInstance, true, softwareDecode, selectedItem));     // hardware decode video. 
-                                                                                                 // if using a non-supported type change to true (eg. Ogg)
-            CheckHR(Plugin.Play(pluginInstance));
         }
 
         public void Pause()
@@ -944,7 +934,7 @@ namespace MediaPlayer
             internal static extern long CreatePlaybackTexture(IntPtr pluginInstance, UInt32 width, UInt32 height, out System.IntPtr playbackTexture);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "LoadContent")]
-            internal static extern long LoadContent(IntPtr pluginInstance, bool useFFmpeg, bool decodeVideo, [MarshalAs(UnmanagedType.LPWStr)] string sourceURL);
+            internal static extern long LoadContent(IntPtr pluginInstance, [MarshalAs(UnmanagedType.LPWStr)] string sourceURL);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "Play")]
             internal static extern long Play(IntPtr pluginInstance);

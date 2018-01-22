@@ -2,26 +2,33 @@
 
 Media Playback plugin for [Unity](https://unity3d.com/) on Windows 10 Fall Creators Update. 
 
-It supports Adaptive Streaming (HLS, DASH), subtitles, stereoscopic 360 video playback in [Mixed Reality](https://developer.microsoft.com/en-us/windows/mixed-reality/mixed_reality), and other features provided by [Universal Windows Platform](https://docs.microsoft.com/en-us/windows/uwp/get-started/universal-application-platform-guide). The plugin is built on top of [MediaPlayer](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer) Universal Windows Platform API.
+It supports a bread range of media playback features: 
+* Local files, progressive and Adaptive Streaming (HLS, DASH) 
+* Regular and 360 videos, Stereoscopic (3D) and monoscopic  
+* Subtitles 
 
-For building the plugin, use [Visual Studio 2017](https://www.visualstudio.com/downloads/) with Universal Windows Platform and C++ toolsets installed. It also requires [Windows 10 Fall Creators update SDK](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk).
+The plugin is built on top of [MediaPlayer](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer) Universal Windows Platform API. 
+Primarily targeting [Windows Mixed Reality](https://developer.microsoft.com/en-us/windows/mixed-reality/mixed_reality), it also supports Windows Standalone (desktop) apps built with Unity. 
+  
 
-It may use FFMPEG as streamning and decoding backend. FFMPEG usage and dependencies are driven by **NO_FFMPEG** preprocessor definition in **pch.h**. 
-FFMPEG usage is **off** by default. 
+MediaPlaybackDemo is a demo project covering 3 key scenarios: 
+* Regular video playback with Adaptive Streaming, MediaPlayback.unity scene.  
+* 360 video playback (mono), MediaPlayback360Mono.unity scene. 
+* 360 video playback (stereo), MediaPlayback360Stereo.unity scene.  
+The demo project already has all plugin binaries prebuilt.  
 
-If you want to build it with FFMPEG support, first you need to build ffmpeg with OpenSSL support using [vcpkg](https://github.com/Microsoft/vcpkg): 
-```
-git clone https://github.com/Microsoft/vcpkg 
-cd vcpkg
-.\bootstrap-vcpkg.bat (to build the VC package manager)
-.\vcpkg integrate install (**from an admin command prompt** to have Visual Studio integration)
-.\vcpkg install ffmpeg:x86-uwp ffmpeg:x64-uwp ffmpeg:x86-windows ffmpeg:x64-windows
-```
+Supported Unity versions: 
+* 5.6.3 
+* 2017.2.1 
+* 2017.3 (preliminary) 
+
+## How to build
+For building the plugin, use [Visual Studio 2017](https://www.visualstudio.com/downloads/) with Windows Desktop, Universal Windows Platform and C++ toolsets installed. It also requires [Windows 10 Fall Creators update SDK](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk).
+
 * Open **MediaPlayback/MediaPlayback.sln** 
 * Build **Desktop** and **UWP** projects 
 
-MediaPlaybackDemo Unity project has all binaries precompiled (no FFMPEG binaries though).
+If built successfully, **MediaPlayback\Unity\MediaPlayback\** should have all Unity files required. *CopyMediaPlaybackDLLsToDemoProject.cmd* script copies plugin binary files to the demo project.
 
-If built successfully, **MediaPlayback\Unity\MediaPlayback\** should have all Unity files required.
-
-**Changes in C# files in the demo project (MediaPlaybackDemo) stay only there. MediaPlayback solution has its own "master" copy of C# files (UnityAddonFiles solution folder).**
+**Changes in C# files in the demo project (MediaPlaybackDemo) stay only there. MediaPlayback solution has its own "master" copy of C# files (UnityAddonFiles solution folder).** 
+If you change files in either location, make sure you copy them across both folders. 

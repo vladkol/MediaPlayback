@@ -14,10 +14,6 @@
 #include <string>
 #include <mutex>
 
-#ifndef NO_FFMPEG
-	#include "FFMpegInterop\FFmpegInteropMSS.h"
-#endif 
-
 #include "PlayReady\PlayReadyHandler.h"
 
 enum class StateType : UINT32
@@ -91,7 +87,7 @@ typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Core::
 DECLARE_INTERFACE_IID_(IMediaPlayerPlayback, IUnknown, "9669c78e-42c4-4178-a1e3-75b03d0f8c9a")
 {
     STDMETHOD(CreatePlaybackTexture)(_In_ UINT32 width, _In_ UINT32 height, _COM_Outptr_ void** ppvTexture) PURE;
-    STDMETHOD(LoadContent)(_In_ BOOL useFFmpeg, _In_ BOOL forceVideoDecode, _In_ LPCWSTR pszContentLocation) PURE;
+    STDMETHOD(LoadContent)(_In_ LPCWSTR pszContentLocation) PURE;
     STDMETHOD(Play)() PURE;
     STDMETHOD(Pause)() PURE;
     STDMETHOD(Stop)() PURE;
@@ -138,10 +134,7 @@ public:
         _In_ UINT32 width, 
         _In_ UINT32 height, 
         _COM_Outptr_ void** ppvTexture);
-    IFACEMETHOD(LoadContent)(
-        _In_ BOOL useFFmpeg, 
-        _In_ BOOL forceVideoDecode,
-        _In_ LPCWSTR pszContentLocation);
+    IFACEMETHOD(LoadContent)(_In_ LPCWSTR pszContentLocation);
 
     IFACEMETHOD(Play)();
     IFACEMETHOD(Pause)();
@@ -240,10 +233,6 @@ private:
 	PlayReadyHandler m_playreadyHandler;
 	Microsoft::WRL::Wrappers::HString m_currentLicenseServiceURL;
 	Microsoft::WRL::Wrappers::HString m_currentLicenseCustomChallendge;
-
-#ifndef NO_FFMPEG
-    Microsoft::WRL::ComPtr<FFmpegInterop::IFFmpegInteropMSS> m_ffmpegInteropMSS;
-#endif
 
 	Microsoft::WRL::ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource> m_spAdaptiveMediaSource;
 	Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackItem> m_spPlaybackItem;
