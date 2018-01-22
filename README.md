@@ -22,7 +22,7 @@ Supported Unity versions:
 * 2017.3 (preliminary) 
 
 ## How to use 
-1. Download MediaPlaybackDemo release package or open MediaPlaybackDemo project from a cloned repo.
+1. Download [MediaPlaybackDemo release package](https://github.com/vladkol/MediaPlayback/releases) or open MediaPlaybackDemo project from a cloned repo.
 2. Look how MediaPlayback.unity and MediaPlayback360Stereo.unity are structured. If you just want to play a video in your scene, use Playback and MediaPlaybackRunner components. 
 
 ## How to build
