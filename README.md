@@ -10,7 +10,6 @@ It supports a bread range of media playback features:
 The plugin is built on top of [MediaPlayer](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer) Universal Windows Platform API. 
 Primarily targeting [Windows Mixed Reality](https://developer.microsoft.com/en-us/windows/mixed-reality/mixed_reality), it also supports Windows Standalone (desktop) apps built with Unity. 
   
-
 MediaPlaybackDemo is a demo project covering 3 key scenarios: 
 * Regular video playback with Adaptive Streaming, MediaPlayback.unity scene.  
 * 360 video playback (mono), MediaPlayback360Mono.unity scene. 
@@ -21,6 +20,10 @@ Supported Unity versions:
 * 5.6.3 
 * 2017.2.1 
 * 2017.3 (preliminary) 
+
+## How to use 
+1. Download MediaPlaybackDemo release package or open MediaPlaybackDemo project from a cloned repo.
+2. Look how MediaPlayback.unity and MediaPlayback360Stereo.unity are structured. If you just want to play a video in your scene, use Playback and MediaPlaybackRunner components. 
 
 ## How to build
 For building the plugin, use [Visual Studio 2017](https://www.visualstudio.com/downloads/) with Windows Desktop, Universal Windows Platform and C++ toolsets installed. It also requires [Windows 10 Fall Creators update SDK](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk).
