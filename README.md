@@ -2,9 +2,10 @@
 
 Media Playback plugin for [Unity](https://unity3d.com/) on Windows 10 Fall Creators Update. 
 
-It supports a bread range of media playback features: 
-* Local files, progressive and Adaptive Streaming (HLS, DASH) 
-* Regular and 360 videos, Stereoscopic (3D) and monoscopic  
+It gives you access to a broad range of media playback features: 
+* Local files, progressive and Adaptive Streaming (HLS, DASH) playback 
+* Regular and 360 videos, stereoscopic (3D) and monoscopic   
+* All formats, codecs and media containers [supported by Windows 10](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/supported-codecs#video-codec--format-support) 
 * Subtitles 
 
 The plugin is built on top of [MediaPlayer](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer) Universal Windows Platform API. 
