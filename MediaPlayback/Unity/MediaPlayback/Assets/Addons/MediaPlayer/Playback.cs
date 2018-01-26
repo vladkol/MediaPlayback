@@ -99,6 +99,8 @@ namespace MediaPlayer
 
         public bool usePlayReadyDRM = false;
 
+        public bool forceStationaryXROnPlayback = false;
+
         public PlaybackState State
         {
             get { return this.currentState; }
@@ -159,6 +161,7 @@ namespace MediaPlayer
 
         private PlayReadyLicenseData playReadyLicense;
 
+        private bool needToGoBackToRoomScale = false;
 
         public void Load(string uriOrPath)
         {
@@ -182,6 +185,39 @@ namespace MediaPlayer
             if (usePlayReadyDRM)
             {
                 InitializePlayReady();
+            }
+
+            needToGoBackToRoomScale = false;
+            bool isXR =
+#if UNITY_2017_2_OR_NEWER
+                UnityEngine.XR.XRDevice.isPresent;
+#else
+                UnityEngine.VR.VRDevice.isPresent;
+#endif
+            if(isXR && forceStationaryXROnPlayback)
+            {
+#if UNITY_2017_2_OR_NEWER
+                needToGoBackToRoomScale = UnityEngine.XR.XRDevice.GetTrackingSpaceType() == UnityEngine.XR.TrackingSpaceType.RoomScale;
+                UnityEngine.XR.XRDevice.SetTrackingSpaceType(UnityEngine.XR.TrackingSpaceType.Stationary);
+#else
+                needToGoBackToRoomScale = UnityEngine.VR.VRDevice.GetTrackingSpaceType() == UnityEngine.VR.TrackingSpaceType.RoomScale;
+                UnityEngine.VR.VRDevice.SetTrackingSpaceType(UnityEngine.VR.TrackingSpaceType.Stationary);
+#endif
+            }
+
+            bool isStationaryXR = isXR & 
+#if UNITY_2017_2_OR_NEWER
+                UnityEngine.XR.XRDevice.GetTrackingSpaceType() == UnityEngine.XR.TrackingSpaceType.Stationary;
+#else
+                UnityEngine.VR.VRDevice.GetTrackingSpaceType() == UnityEngine.VR.TrackingSpaceType.Stationary;
+#endif
+            if (isStationaryXR && forceStationaryXROnPlayback)
+            {
+#if UNITY_2017_2_OR_NEWER
+                UnityEngine.XR.InputTracking.Recenter();
+#else
+                UnityEngine.VR.InputTracking.Recenter();
+#endif
             }
 
             loaded = (0 == CheckHR(Plugin.LoadContent(pluginInstance, uriStr)));
@@ -227,6 +263,18 @@ namespace MediaPlayer
             currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
             State = PlaybackState.None;
             currentItem = string.Empty;
+
+            if (needToGoBackToRoomScale)
+            {
+                needToGoBackToRoomScale = false;
+#if UNITY_2017_2_OR_NEWER
+                UnityEngine.XR.InputTracking.Recenter();
+                UnityEngine.XR.XRDevice.SetTrackingSpaceType(UnityEngine.XR.TrackingSpaceType.RoomScale);
+#else
+                UnityEngine.VR.InputTracking.Recenter();
+                UnityEngine.VR.VRDevice.SetTrackingSpaceType(UnityEngine.VR.TrackingSpaceType.RoomScale);
+#endif
+            }
 
             if (playbackTexture != null)
             {
