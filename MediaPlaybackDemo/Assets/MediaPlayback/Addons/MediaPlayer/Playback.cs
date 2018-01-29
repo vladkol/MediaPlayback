@@ -169,7 +169,7 @@ namespace MediaPlayer
 
             string uriStr = uriOrPath.Trim();
 
-            if (Uri.IsWellFormedUriString(uriOrPath, UriKind.Absolute))
+            if (uriStr.ToLower().StartsWith("file:///") || Uri.IsWellFormedUriString(uriOrPath, UriKind.Absolute))
             {
                 uriStr = uriOrPath;
             }

@@ -70,6 +70,27 @@ public class MediaItemsUI : MonoBehaviour
         }
     }
 
+    private void Start()
+    {
+        bool isXR =
+#if UNITY_2017_2_OR_NEWER
+                UnityEngine.XR.XRDevice.isPresent;
+#else
+                UnityEngine.VR.VRDevice.isPresent;
+#endif
+        if (isXR)
+        {
+#if UNITY_2017_2_OR_NEWER
+            UnityEngine.XR.XRDevice.SetTrackingSpaceType(UnityEngine.XR.TrackingSpaceType.Stationary);
+            UnityEngine.XR.InputTracking.Recenter();
+#else
+            UnityEngine.VR.VRDevice.SetTrackingSpaceType(UnityEngine.VR.TrackingSpaceType.Stationary);
+            UnityEngine.VR.InputTracking.Recenter();
+#endif
+        }
+
+    }
+
     private void Button_OnClick(Text label)
     {
         if (label == null)
