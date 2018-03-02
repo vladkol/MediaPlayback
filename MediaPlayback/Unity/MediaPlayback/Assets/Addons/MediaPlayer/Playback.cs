@@ -598,7 +598,6 @@ namespace MediaPlayer
                 try
                 {
                     thisObject.Free();
-                    thisObject.Target = null;
                 }
                 catch { }
             }
