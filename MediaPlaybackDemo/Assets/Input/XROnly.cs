@@ -1,4 +1,4 @@
-﻿//*********************************************************
+//*********************************************************
 //
 // Copyright (c) Microsoft. All rights reserved.
 // This code is licensed under the MIT License (MIT).
@@ -16,7 +16,7 @@ using UnityEngine;
 public class XROnly : MonoBehaviour
 {
 
-	void Start ()
+	void Awake ()
     {
 #if UNITY_2017_2_OR_NEWER
         bool hasMR = UnityEngine.XR.XRDevice.isPresent;

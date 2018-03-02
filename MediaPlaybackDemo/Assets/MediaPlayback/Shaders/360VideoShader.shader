@@ -9,53 +9,115 @@
 //
 //*********************************************************
 
-Shader "360Video/VideoRevertNormals"
+Shader "360 Video/360 XR Stereo Panorama"
 {
-	Properties{
-		_MainTex("Base (RGB)", 2D) = "white" {}
+	Properties
+	{
+		_MainTex("Spherical (HDR)", 2D) = "white" {}
+		_MainTexLeft("Stereoscopic Left Eye (Spherical, HDR)", 2D) = "white" {}
+		_MainTexRight("Stereoscopic Right Eye (Spherical, HDR)", 2D) = "white" {}
+		_Tint("Tint Color", Color) = (.5, .5, .5, .5)
+		[Gamma] _Exposure("Exposure", Range(0, 8)) = 1.0
+		[Toggle] _isStereo("Stereoscopic Mode", Float) = 0
 	}
 
-		SubShader{
+	SubShader
+	{
 		Tags{ "RenderType" = "Opaque" }
 		Cull front
 		LOD 100
 
-		Pass{
-		CGPROGRAM
+		Pass
+		{
+			CGPROGRAM
+
 #pragma vertex vert
 #pragma fragment frag
+#pragma target 2.0
 
 #include "UnityCG.cginc"
 
-		struct appdata_t {
-		float4 vertex : POSITION;
-		float2 texcoord : TEXCOORD0;
-	};
+			struct appdata_t 
+			{
+				float4 vertex : POSITION;
+				float2 texcoord : TEXCOORD0;
+				UNITY_VERTEX_INPUT_INSTANCE_ID
+			};
 
-	struct v2f {
-		float4 vertex : SV_POSITION;
-		half2 texcoord : TEXCOORD0;
-	};
+			struct v2f 
+			{
+				float4 vertex : SV_POSITION;
+				half2 texcoord : TEXCOORD0;
+				UNITY_VERTEX_OUTPUT_STEREO
+			};
 
-	sampler2D _MainTex;
-	float4 _MainTex_ST;
+			sampler2D _MainTex;
+			float4 _MainTex_ST;
+			half4 _MainTex_HDR;
 
-	v2f vert(appdata_t v)
-	{
-		v2f o;
-		o.vertex = UnityObjectToClipPos(v.vertex);
-		v.texcoord.x = 1 - v.texcoord.x;
-		o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
-		return o;
+			sampler2D _MainTexLeft;
+			float4 _MainTexLeft_ST;
+			half4 _MainTexLeft_HDR;
+
+			sampler2D _MainTexRight;
+			float4 _MainTexRight_ST;
+			half4 _MainTexRight_HDR;
+
+			half4 _Tint;
+			half _Exposure;
+			half _isStereo; 
+
+			v2f vert(appdata_t v)
+			{
+				v2f o;
+				
+				UNITY_SETUP_INSTANCE_ID(v);
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+
+				o.vertex = UnityObjectToClipPos(v.vertex);
+				v.texcoord.x = 1 - v.texcoord.x;
+
+				o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
+
+				if (_isStereo > 0)
+				{
+					if (unity_StereoEyeIndex > 0)
+						o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTexRight);
+					else
+						o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTexLeft);
+				}
+
+				return o;
+			}
+
+			fixed4 frag(v2f i) : SV_Target
+			{
+				half4 texHDR = _MainTex_HDR;
+				half4 texCol = tex2D(_MainTex, i.texcoord);
+
+				if (_isStereo > 0)
+				{
+					if (unity_StereoEyeIndex > 0)
+					{
+						texCol = tex2D(_MainTexRight, i.texcoord);
+						texHDR = _MainTexRight_HDR;
+					}
+					else
+					{
+						texCol = tex2D(_MainTexLeft, i.texcoord);
+						texHDR = _MainTexLeft_HDR;
+					}
+				}
+
+				half3 color = DecodeHDR(texCol, texHDR);
+
+				color = color * _Tint.rgb * unity_ColorSpaceDouble.rgb;
+				color *= _Exposure;
+
+				return half4(color, 1);
+			}
+
+			ENDCG
+		}
 	}
-
-	fixed4 frag(v2f i) : SV_Target
-	{
-		fixed4 col = tex2D(_MainTex, i.texcoord);
-	return col;
-	}
-		ENDCG
-	}
-	}
-
 }

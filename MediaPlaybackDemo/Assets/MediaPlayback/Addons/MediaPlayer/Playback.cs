@@ -20,86 +20,98 @@ namespace MediaPlayer
     public enum VideoLayout
     {
         Mono = 0,
-        StereoTopBottom,
-        StereoLeftRight
-    }
-    public enum StereoEye
-    {
-        Both = 0,
-        Left,
-        Right
+        StereoOverUnder,
+        StereoSideBySide
     }
 
-    
+    public enum ForcedStereoLayout
+    {
+        None = 0,
+        StereoOverUnder,
+        StereoSideBySide
+    }
+
+
+    public enum TargetRenderingMode
+    {
+        Mono = 0, 
+        StereoBothEyes,
+        StereoLeftEyeOnly, 
+        StereoRightEyeOnly
+    }
+
+    public class TargetRenderer
+    {
+        Renderer targetRenderer;
+
+        [Tooltip("If 'Stereo Both Eyes' is selected, requres a shader accepting left and right eyes' textures separately.")]
+        TargetRenderingMode renderingMode = TargetRenderingMode.Mono;
+
+        string mainTextureName = "_MainTex";
+        string mainTextureLeftEyeName = "_MainTexLeft";
+        string mainTextureRightEyeName = "_MainTexRight";
+
+        public float textureUVOffsetX = 0.0f;
+        public float textureUVOffsetY = 0.0f;
+    }
+
+
     public class Playback : MonoBehaviour
     {
         // state handling
         public delegate void PlaybackStateChangedHandler(object sender, ChangedEventArgs<PlaybackState> args);
         public delegate void PlaybackFailedHandler (object sender, long hresult);
         public delegate void TextureUpdatedHandler(object sender);
-        public delegate void DRMLicenseRequestedHandler(object sender, ref PlayReadyLicenseData item);
         public delegate void SubtitleItemEnteredHandler(object sender, string subtitlesTrackId, string textCueId, string language, string[] textLines);
         public delegate void SubtitleItemExitedHandler(object sender, string subtitlesTrackId, string textCueId);
 
         public event PlaybackStateChangedHandler PlaybackStateChanged;
         public event PlaybackFailedHandler PlaybackFailed;
         public event TextureUpdatedHandler TextureUpdated;
-        public event DRMLicenseRequestedHandler DRMLicenseRequested;
         public event SubtitleItemEnteredHandler SubtitleItemEntered;
         public event SubtitleItemExitedHandler SubtitleItemExited;
 
-        public Renderer targetRendererLeftOrBoth = null;
-        public Renderer targetRendererRightOrBoth = null;
+        public TargetRenderer[] targetRenderers;
 
-        [HideInInspector]
-        public bool hwDecodingSupported = true;
+        public bool hardwareDecoding4KSupported
+        {
+            get
+            {
+                return hwDecoding4KSupported;
+            }
+        }
 
         // texture size
-        public uint textureWidth
+        public uint currentPlaybackTextureWidth
         {
             get
             {
-                return TextureWidth;
-            }
-            set
-            {
-                if (this.playbackTexture != null)
-                {
-                    Debug.LogError("Cannot change texture size if playbackTexture is not null(already created). Use UpdateTexture(newWidth, newHeight).");
-                    return;
-                }
-
-                TextureWidth = value;
+                return textureWidth;
             }
         }
-        public uint textureHeight
+        public uint currentPlaybackTextureHeight
         {
             get
             {
-                return TextureHeight;
-            }
-            set
-            {
-                if (this.playbackTexture != null)
-                {
-                    Debug.LogError("Cannot change texture size if playbackTexture is not null(already created). Use UpdateTexture(newWidth, newHeight).");
-                    return;
-                }
-
-                TextureHeight = value;
+                return textureHeight;
             }
         }
 
-        public bool autoAdjustMaterial = false;
 
-        public VideoLayout layout = VideoLayout.Mono;
+        [Tooltip("Over/Under or Side-by-side frame layouts can be forced even if there is no ST3D metadata in the video.")]
+        public ForcedStereoLayout forcedStereoLayout = ForcedStereoLayout.None;
 
-        public float textureOffsetX = 0.0f;
-        public float textureOffsetY = 0.0f;
+        public VideoLayout currentVideoLayout
+        {
+            get
+            {
+                return currentVideoFrameLayout;
+            }
+        }
 
-        public bool usePlayReadyDRM = false;
+        [Tooltip("Recenters the camera when playback starts.")]
+        public bool forceStationaryXROnPlayback = true;
 
-        public bool forceStationaryXROnPlayback = false;
 
         public PlaybackState State
         {
@@ -133,24 +145,21 @@ namespace MediaPlayer
         }
 
 
-        [SerializeField]
-        private uint TextureWidth = 4096;
-        [SerializeField]
-        private uint TextureHeight = 4096;
-
+        private uint textureWidth = 0;
+        private uint textureHeight = 0;
 
         private IntPtr pluginInstance = IntPtr.Zero;
         private GCHandle thisObject;
+        private bool hwDecoding4KSupported = true;
 
         private string currentItem = string.Empty;
 
         private PlaybackState currentState = PlaybackState.None;
         private PlaybackState previousState = PlaybackState.None;
 
-        private Texture2D playbackTexture;
+        private VideoLayout currentVideoFrameLayout = VideoLayout.Mono;
 
         private Plugin.StateChangedCallback stateCallback = new Plugin.StateChangedCallback(MediaPlayback_Changed);
-        private Plugin.DRMLicenseRequestedCallback licenseCallback = new Plugin.DRMLicenseRequestedCallback(MediaPlayback_DRMLicenseRequested);
         private Plugin.SubtitleItemEnteredCallback subtitleEnteredCallback = new Plugin.SubtitleItemEnteredCallback(MediaPlayback_SubtitleItemEntered);
         private Plugin.SubtitleItemExitedCallback subtitleExitedCallback = new Plugin.SubtitleItemExitedCallback(MediaPlayback_SubtitleItemExited);
 
@@ -158,8 +167,6 @@ namespace MediaPlayer
         private bool hasNewSize = false;
         private bool needMaterialUpdateAfterNewSize = false;
         private Plugin.MEDIA_DESCRIPTION currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
-
-        private PlayReadyLicenseData playReadyLicense;
 
         private bool needToGoBackToRoomScale = false;
 
@@ -182,10 +189,6 @@ namespace MediaPlayer
                 uriStr = "file:///" + System.IO.Path.Combine(Application.streamingAssetsPath, uriOrPath);
             }
 
-            if (usePlayReadyDRM)
-            {
-                InitializePlayReady();
-            }
 
             needToGoBackToRoomScale = false;
             bool isXR =
@@ -247,10 +250,6 @@ namespace MediaPlayer
             }
         }
 
-        public Texture2D GetVideoTexture()
-        {
-            return playbackTexture;
-        }
 
         public void Pause()
         {
@@ -294,7 +293,8 @@ namespace MediaPlayer
 
         public void UpdateTexture(uint newTextureWidth, uint newTextureHeight)
         {
-            Texture2D oldTexture = playbackTexture;
+            Texture2D oldTextureLeft = playbackTextureLeft;
+            Texture2D oldTextureRight = playbackTextureRight;
 
             TextureWidth = newTextureWidth;
             TextureHeight = newTextureHeight;
@@ -317,14 +317,14 @@ namespace MediaPlayer
                     this.playbackTexture.UpdateExternalTexture(nativeTexture);
                 }
 
-                // set texture for the shader
-                if (targetRendererRightOrBoth == null && targetRendererLeftOrBoth == null)
-                    targetRendererRightOrBoth = GetComponent<Renderer>();
+                //// set texture for the shader
+                //if (targetRendererLeft == null && targetRendererRight == null)
+                //    targetRendererRightOrBoth = GetComponent<Renderer>();
 
-                if (targetRendererRightOrBoth)
-                    targetRendererRightOrBoth.material.mainTexture = this.playbackTexture;
-                if (targetRendererLeftOrBoth)
-                    targetRendererLeftOrBoth.material.mainTexture = this.playbackTexture;
+                if (targetRendererLeft)
+                    targetRendererLeft.material.mainTexture = this.playbackTextureLeft;
+                if (targetRendererRight)
+                    targetRendererRight.material.mainTexture = this.playbackTextureRight;
 
                 UpdateMaterial();
 
@@ -424,17 +424,6 @@ namespace MediaPlayer
         }
 
 
-        public void SetPlayReadyDRMLicense(PlayReadyLicenseData licenseData)
-        {
-            this.playReadyLicense = licenseData;
-        }
-
-        // only works when exported as a UWP app. Doesn't work in Unity Editor 
-        private void InitializePlayReady()
-        {
-            Plugin.SetDRMLicenseCallback(pluginInstance, this.licenseCallback);
-        }
-
         public uint GetVideoWidth()
         {
             return currentMediaDescription.width;
@@ -508,7 +497,7 @@ namespace MediaPlayer
 
                 switch (layout)
                 {
-                    case VideoLayout.StereoLeftRight:
+                    case VideoLayout.StereoSideBySide:
                         scaleLeft = new Vector2(0.5f, -1f * ratio);
                         scaleRight = new Vector2(0.5f, -1f * ratio);
 
@@ -523,7 +512,7 @@ namespace MediaPlayer
                         offsetRight.y += -0.5f + ratio/2.0f;
 
                         break;
-                    case VideoLayout.StereoTopBottom:
+                    case VideoLayout.StereoOverUnder:
                         scaleLeft = new Vector2(1, -0.5f * ratio);
                         scaleRight = new Vector2(1, -0.5f * ratio);
 
@@ -598,7 +587,6 @@ namespace MediaPlayer
                 try
                 {
                     thisObject.Free();
-                    thisObject.Target = null;
                 }
                 catch { }
             }
@@ -846,55 +834,6 @@ namespace MediaPlayer
         }
 
 
-        [AOT.MonoPInvokeCallback(typeof(Plugin.DRMLicenseRequestedCallback))]
-        private static void MediaPlayback_DRMLicenseRequested(IntPtr thisObjectPtr)
-        {
-            if (thisObjectPtr == IntPtr.Zero)
-            {
-                Debug.LogError("MediaPlayback_DRMLicenseRequested: requires thisObjectPtr.");
-                return;
-            }
-
-            var handle = GCHandle.FromIntPtr(thisObjectPtr);
-            Playback thisObject = handle.Target as Playback;
-            if (thisObject == null)
-            {
-                Debug.LogError("MediaPlayback_DRMLicenseRequested: thisObjectPtr is not null, but seems invalid.");
-                return;
-            }
-
-#if UNITY_WSA_10_0
-            if (!UnityEngine.WSA.Application.RunningOnAppThread())
-            {
-                UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-                {
-                    thisObject.OnDRMLicenseRequested();
-                }, true);
-            }
-            else
-            {
-                thisObject.OnDRMLicenseRequested();
-            }
-#else
-            thisObject.OnDRMLicenseRequested();
-#endif
-        }
-
-
-        private void OnDRMLicenseRequested()
-        {
-            if (playReadyLicense == null)
-                playReadyLicense = new PlayReadyLicenseData();
-
-            if (DRMLicenseRequested != null)
-            {
-                DRMLicenseRequested(this, ref playReadyLicense);
-            }
-
-            Plugin.SetDRMLicense(pluginInstance, playReadyLicense.playReadyLicenseUrl, playReadyLicense.playReadyChallengeCustomData);
-        }
-
-
         private IEnumerator CallPluginAtEndOfFrames()
         {
             while (true)
@@ -964,7 +903,6 @@ namespace MediaPlayer
             };
 
             public delegate void StateChangedCallback(IntPtr thisObjectPtr, PLAYBACK_STATE args);
-            public delegate void DRMLicenseRequestedCallback(IntPtr thisObjectPtr);
             public delegate void SubtitleItemEnteredCallback(IntPtr thisObjectPtr,  [MarshalAs(UnmanagedType.LPWStr)] string subtitleTrackId, 
                                                                                     [MarshalAs(UnmanagedType.LPWStr)] string textCueId, 
                                                                                     [MarshalAs(UnmanagedType.LPWStr)] string language,
@@ -1008,11 +946,6 @@ namespace MediaPlayer
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetMediaPlayer")]
             internal static extern long GetMediaPlayer(IntPtr pluginInstance, out IntPtr ppvUnknown);
 
-            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetDRMLicense")]
-            internal static extern long SetDRMLicense(IntPtr pluginInstance, [MarshalAs(UnmanagedType.LPWStr)] string licenseServiceURL, [MarshalAs(UnmanagedType.LPWStr)] string licenseCustomChallendgeData);
-
-            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetDRMLicenseCallback")]
-            internal static extern long SetDRMLicenseCallback(IntPtr pluginInstance, DRMLicenseRequestedCallback callback);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetSubtitlesCallbacks")]
             internal static extern long SetSubtitlesCallbacks(IntPtr pluginInstance, SubtitleItemEnteredCallback enteredCallback, SubtitleItemExitedCallback exitedCallback);
