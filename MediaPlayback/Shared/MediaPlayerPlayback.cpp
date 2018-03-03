@@ -28,21 +28,22 @@ using namespace ABI::Windows::Media::Core;
 using namespace ABI::Windows::Media::Playback;
 using namespace Windows::Foundation;
 
-bool CMediaPlayerPlayback::m_deviceNotReady = false;
+bool CMediaPlayerPlayback::m_deviceNotReady = true;
 std::vector<CMediaPlayerPlayback*> CMediaPlayerPlayback::m_playbackObjects;
 Microsoft::WRL::Wrappers::Mutex CMediaPlayerPlayback::m_playbackVectorMutex(::CreateMutex(nullptr, FALSE, nullptr));
 
-void CMediaPlayerPlayback::ReportDeviceLost()
+// static method the plugin core calls when the plugin is shutting down or there is a graphics device loss 
+void CMediaPlayerPlayback::GraphicsDeviceShutdown()
 {
-	auto lock = m_playbackVectorMutex.Lock();
 	m_deviceNotReady = true;
+	auto lock = m_playbackVectorMutex.Lock();
 
 	for (size_t i = 0; i < m_playbackObjects.size(); i++)
 	{
 		try
 		{
 			if (m_playbackObjects[i] != nullptr && !m_playbackObjects[i]->m_releasing)
-				m_playbackObjects[i]->DeviceLost();
+				m_playbackObjects[i]->DeviceShutdown();
 		}
 		catch (...)
 		{
@@ -50,20 +51,26 @@ void CMediaPlayerPlayback::ReportDeviceLost()
 	}
 }
 
-void CMediaPlayerPlayback::ReportDeviceReady()
+
+// static method the plugin core calls when the plugin has been initalized or graphics device restore happened  
+void CMediaPlayerPlayback::GraphicsDeviceReady(IUnityInterfaces* pUnityInterfaces)
 {
 	auto lock = m_playbackVectorMutex.Lock();
-	m_deviceNotReady = false;
+	IUnityGraphicsD3D11* d3d = pUnityInterfaces->Get<IUnityGraphicsD3D11>();
 
-	for (size_t i = 0; i < m_playbackObjects.size(); i++)
+	if (d3d != nullptr)
 	{
-		try
+		m_deviceNotReady = false;
+		for (size_t i = 0; i < m_playbackObjects.size(); i++)
 		{
-			if (m_playbackObjects[i] != nullptr && !m_playbackObjects[i]->m_releasing)
-				m_playbackObjects[i]->DeviceRestored();
-		}
-		catch (...)
-		{
+			try
+			{
+				if (m_playbackObjects[i] != nullptr && !m_playbackObjects[i]->m_releasing)
+					m_playbackObjects[i]->DeviceReady(d3d);
+			}
+			catch (...)
+			{
+			}
 		}
 	}
 }
@@ -92,11 +99,11 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayback(
         ComPtr<CMediaPlayerPlayback> spMediaPlayback(nullptr);
         IFR(MakeAndInitialize<CMediaPlayerPlayback>(&spMediaPlayback, fnCallback, pClientObject, d3d));
 
-        *ppMediaPlayback = spMediaPlayback.Detach();
-
 		auto lock = m_playbackVectorMutex.Lock();
 		m_playbackObjects.push_back(spMediaPlayback.Get());
-    }
+	
+		*ppMediaPlayback = spMediaPlayback.Detach();
+	}
     else
     {
         IFR(E_INVALIDARG);
@@ -111,24 +118,16 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
     : m_d3dDevice(nullptr)
     , m_mediaDevice(nullptr)
     , m_fnStateCallback(nullptr)
-	, m_fnLicenseCallback(nullptr)
 	, m_fnSubtitleEntered(nullptr) 
 	, m_fnSubtitleExited(nullptr)
 	, m_pClientObject(nullptr)
-    , m_mediaPlayer(nullptr)
-    , m_mediaPlaybackSession(nullptr)
-    , m_primaryTexture(nullptr)
-    , m_primaryTextureSRV(nullptr)
     , m_primarySharedHandle(INVALID_HANDLE_VALUE)
-    , m_primaryMediaTexture(nullptr)
-    , m_primaryMediaSurface(nullptr)
 	, m_uiDeviceResetToken(0)
 	, m_bIgnoreEvents(false)
 	, m_readyForFrames(false)
-	, m_noHWDecoding(false)
+	, m_noHW4KDecoding(false)
 	, m_make1080MaxWhenNoHWDecoding(true) 
 	, m_releasing(false)
-	, m_playreadyHandler(this, CMediaPlayerPlayback::LicenseRequestInternal)
 {
 }
 
@@ -146,13 +145,11 @@ CMediaPlayerPlayback::~CMediaPlayerPlayback()
 	
 	ReleaseTextures();
 
-    MFUnlockDXGIDeviceManager();
-
     ReleaseResources();
 
 	auto position = std::find(m_playbackObjects.begin(), m_playbackObjects.end(), this);
 	if (position != m_playbackObjects.end())
-		(*position) = nullptr;
+		(*position) = nullptr; // do not remove pointer, just make it null
 }
 
 
@@ -167,11 +164,10 @@ HRESULT CMediaPlayerPlayback::RuntimeClassInitialize(
     NULL_CHK(fnCallback);
     NULL_CHK(pUnityDevice);
 
-	m_pUnityGraphics = pUnityDevice;
 	m_pClientObject = pClientObject;
 	m_fnStateCallback = fnCallback;
 
-    return InitializeDevices();
+	DeviceReady(pUnityDevice);
 }
 
 
@@ -217,7 +213,7 @@ HRESULT CMediaPlayerPlayback::InitializeDevices()
 
 
 	// check if our GPU support hardware video decoding 
-	m_noHWDecoding = false;
+	m_noHW4KDecoding = false;
 
 	Microsoft::WRL::ComPtr<ID3D11VideoDevice> videoDevice;
 	m_mediaDevice.As(&videoDevice);
@@ -225,9 +221,9 @@ HRESULT CMediaPlayerPlayback::InitializeDevices()
 	// No hardware decoding support at all? 
 	if (videoDevice == nullptr)
 	{
-		m_noHWDecoding = true;
+		m_noHW4KDecoding = true;
 	}
-	else // ok, it supports hadrware decoding in general, let's check in it supports 4K decoding 
+	else // ok, it supports hadrware decoding in general, let's check if it supports 4K decoding 
 	{
 		D3D11_VIDEO_DECODER_DESC desc = { 0 };
 		D3D11_VIDEO_DECODER_CONFIG config = { 0 };
@@ -249,7 +245,7 @@ HRESULT CMediaPlayerPlayback::InitializeDevices()
 		videoDevice->CreateVideoDecoder(&desc, &config, &videoDecoder);
 		if (!videoDecoder)
 		{
-			m_noHWDecoding = true;
+			m_noHW4KDecoding = true;
 		}
 	}
 
@@ -279,7 +275,7 @@ HRESULT CMediaPlayerPlayback::CreatePlaybackTexture(
 	m_textureDesc.ArraySize = 1;
 	m_textureDesc.SampleDesc = { 1, 0 };
 	m_textureDesc.CPUAccessFlags = 0;
-	m_textureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED; // /* commented out while investigating SHARED_NTHANDLE issue */ | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
+	m_textureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED; 
     m_textureDesc.Usage = D3D11_USAGE_DEFAULT;
 
     IFR(CreateTextures());
@@ -334,7 +330,7 @@ HRESULT CMediaPlayerPlayback::LoadContent(LPCWSTR pszContentLocation)
 			OutputDebugStringW(L"We have an Adaptive Streaming media source!\n");
 
 			// Here we make sure that we start at the highest available bitrate. 
-			// If hardware video decoding is not supported, we limit the max bitrate to an available bitrate that is close to ~16Mbps. 
+			// If hardware video decoding for 4K+ is not supported, we limit the max bitrate to an available bitrate that is close to ~16Mbps. 
 			// Remove this piece if you don't want to override the default behaviour. 
 			Microsoft::WRL::ComPtr<ABI::Windows::Foundation::Collections::IVectorView<UINT32>> spAvailableBitrates;
 			m_spAdaptiveMediaSource->get_AvailableBitrates(&spAvailableBitrates);
@@ -367,12 +363,12 @@ HRESULT CMediaPlayerPlayback::LoadContent(LPCWSTR pszContentLocation)
 						}
 					}
 
-					if (!m_noHWDecoding && maxBR > 0)
+					if (!m_noHW4KDecoding && maxBR > 0)
 					{
 						Log(Log_Level_Any, L"Setting initial bitrate to max: %u\n", maxBR);
 						m_spAdaptiveMediaSource->put_InitialBitrate(maxBR);
 					}
-					else if (m_noHWDecoding && closestTo1080BR != 0)
+					else if (m_noHW4KDecoding && closestTo1080BR != 0)
 					{
 						ComPtr<ABI::Windows::Foundation::IReference<UINT32>> spValue;
 						CreateUInt32Reference(closestTo1080BR, &spValue);
@@ -404,9 +400,6 @@ HRESULT CMediaPlayerPlayback::LoadContent(LPCWSTR pszContentLocation)
 
     ComPtr<IMediaPlaybackSource> spMediaPlaybackSource;
     IFR(m_spPlaybackItem.As(&spMediaPlaybackSource));
-
-	// Set ProtectionManager for MediaPlayer 
-	IFR(InitializeMediaPlayerWithPlayReadyDRM());
 
     IFR(spPlayerAsMediaPlayerSource->put_Source(spMediaPlaybackSource.Get()));
 
@@ -481,8 +474,10 @@ HRESULT CMediaPlayerPlayback::Stop()
 		}
     }
 
-	ReleaseMediaPlayer();
+	m_subtitleTracks.clear();
 
+	ReleaseMediaPlayer();
+	
 	HRESULT hr = CreateMediaPlayer();
 
 	if (fireStateChange)
@@ -506,38 +501,42 @@ HRESULT CMediaPlayerPlayback::GetDurationAndPosition(_Out_ LONGLONG* duration, _
 {
 	Log(Log_Level_Info, L"CMediaPlayerPlayback::GetDurationAndPosition()"); 
 
-	if (nullptr != m_mediaPlayer)
+	ABI::Windows::Foundation::TimeSpan durationTS;
+	ABI::Windows::Foundation::TimeSpan positionTS;
+
+	durationTS.Duration = 0;
+	positionTS.Duration = 0;
+
+	HRESULT hrPos = E_FAIL;
+	HRESULT hrDur = E_FAIL;
+
+	if (nullptr != m_mediaPlaybackSession)
 	{
-		ComPtr<IMediaPlayer3> spMediaPlayer3;
-		IFR(m_mediaPlayer.As(&spMediaPlayer3));
-
-		ComPtr<IMediaPlaybackSession> spSession;
-		IFR(spMediaPlayer3->get_PlaybackSession(&spSession));
-
-		ABI::Windows::Foundation::TimeSpan durationTS;
-		ABI::Windows::Foundation::TimeSpan positionTS;
-
-		durationTS.Duration = 0;
-		positionTS.Duration = 0;
-
-		HRESULT hr = spSession->get_Position(&positionTS); 
-		if(SUCCEEDED(hr))
-			hr = spSession->get_NaturalDuration(&durationTS);
-
-		if (duration)
+		if( !FAILED(m_mediaPlaybackSession->get_Position(&positionTS)) && 
+			!FAILED(m_mediaPlaybackSession->get_NaturalDuration(&durationTS)))
 		{
-			*duration = durationTS.Duration;
-		}
+			if (duration)
+			{
+				*duration = durationTS.Duration;
+			}
 
-		if (position)
+			if (position)
+			{
+				*position = positionTS.Duration;
+			}
+		}
+		else
 		{
-			*position = positionTS.Duration;
+			return E_FAIL;
 		}
-
-		return hr;
+	}
+	else
+	{
+		return E_ILLEGAL_METHOD_CALL;
 	}
 
-	return E_ILLEGAL_METHOD_CALL;
+
+	return S_OK;
 }
 
 _Use_decl_annotations_
@@ -545,16 +544,10 @@ HRESULT CMediaPlayerPlayback::Seek(LONGLONG position)
 {
 	Log(Log_Level_Info, L"CMediaPlayerPlayback::Seek()");
 
-	if (nullptr != m_mediaPlayer)
+	if (nullptr != m_mediaPlaybackSession)
 	{
-		ComPtr<IMediaPlayer3> spMediaPlayer3;
-		IFR(m_mediaPlayer.As(&spMediaPlayer3));
-
-		ComPtr<IMediaPlaybackSession> spSession;
-		IFR(spMediaPlayer3->get_PlaybackSession(&spSession));
-
 		boolean canSeek = 0;
-		HRESULT hr = spSession->get_CanSeek(&canSeek);
+		HRESULT hr = m_mediaPlaybackSession->get_CanSeek(&canSeek);
 		if (!FAILED(hr))
 		{
 			if (!canSeek)
@@ -565,7 +558,7 @@ HRESULT CMediaPlayerPlayback::Seek(LONGLONG position)
 			{
 				ABI::Windows::Foundation::TimeSpan positionTS;
 				positionTS.Duration = position;
-				hr = spSession->put_Position(positionTS);
+				hr = m_mediaPlaybackSession->put_Position(positionTS);
 			}
 		}	
 		
@@ -611,51 +604,21 @@ HRESULT CMediaPlayerPlayback::GetIUnknown(IUnknown** ppUnknown)
 
 
 _Use_decl_annotations_
-HRESULT CMediaPlayerPlayback::IsHWDecodingSupported(_Out_ BOOL* pSupportsHWVideoDecoding)
+HRESULT CMediaPlayerPlayback::IsHardware4KDecodingSupported(_Out_ BOOL* pSupportsHardware4KVideoDecoding)
 {
 	Log(Log_Level_Info, L"CMediaPlayerPlayback::IsHWDecodingSupported()");
 
 	if (!m_mediaDevice)
 		return E_UNEXPECTED;
 
-	if (!pSupportsHWVideoDecoding)
+	if (!pSupportsHardware4KVideoDecoding)
 		return E_INVALIDARG;
 
-	*pSupportsHWVideoDecoding = m_noHWDecoding ? FALSE : TRUE;
+	*pSupportsHardware4KVideoDecoding = m_noHW4KDecoding ? FALSE : TRUE;
 
 	return S_OK;
 }
 
-
-_Use_decl_annotations_
-HRESULT CMediaPlayerPlayback::SetDRMLicense(_In_ LPCWSTR pszlicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData)
-{
-	Log(Log_Level_Info, L"CMediaPlayerPlayback::SetDRMLicense()");
-
-	if(m_currentLicenseServiceURL != nullptr)
-		m_currentLicenseServiceURL.Release();
-	if (m_currentLicenseCustomChallendge != nullptr)
-		m_currentLicenseCustomChallendge.Release();
-
-	if(pszlicenseServiceURL != nullptr)
-		m_currentLicenseServiceURL.Set(pszlicenseServiceURL);
-	
-	if (pszCustomChallendgeData != nullptr)
-		m_currentLicenseCustomChallendge.Set(pszCustomChallendgeData);
-
-	return S_OK;
-}
-
-
-_Use_decl_annotations_
-HRESULT CMediaPlayerPlayback::SetDRMLicenseCallback(_In_ DRMLicenseRequestedCallback fnCallback)
-{
-	Log(Log_Level_Info, L"CMediaPlayerPlayback::SetDRMLicenseCallback()");
-
-	m_fnLicenseCallback = fnCallback;
-
-	return S_OK;
-}
 
 
 _Use_decl_annotations_
@@ -704,13 +667,13 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayer()
 {
     Log(Log_Level_Info, L"CMediaPlayerPlayback::CreateMediaPlayer()");
 
-	m_playreadyHandler.InitalizeProtectionManager();
-
     // create media player
     ComPtr<IMediaPlayer> spMediaPlayer;
     IFR(ActivateInstance(
         Wrappers::HStringReference(RuntimeClass_Windows_Media_Playback_MediaPlayer).Get(),
         &spMediaPlayer));
+
+	spMediaPlayer->put_AutoPlay(false);
 
     // setup callbacks
     EventRegistrationToken openedEventToken;
@@ -746,6 +709,18 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayer()
     m_failedEventToken = failedEventToken;
     m_videoFrameAvailableToken = videoFrameAvailableToken;
 
+	ComPtr<IMediaPlayer3> spMediaPlayer3;
+	IFR(m_mediaPlayer.As(&spMediaPlayer3));
+	m_mediaPlayer3.Attach(spMediaPlayer3.Detach());
+
+	ComPtr<IMediaPlayer5> spMediaPlayer5;
+	IFR(m_mediaPlayer.As(&spMediaPlayer5)); 
+	m_mediaPlayer5.Attach(spMediaPlayer5.Detach());
+
+	ComPtr<IMediaPlaybackSession> spSession;
+	IFR(m_mediaPlayer3->get_PlaybackSession(&spSession));
+	m_mediaPlaybackSession.Attach(spSession.Detach());
+
     IFR(AddStateChanged());
 
     return S_OK;
@@ -760,8 +735,21 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
 
     RemoveStateChanged();
 
+	m_mediaPlaybackSession.Reset();
+	m_mediaPlaybackSession = nullptr;
+
     if (nullptr != m_mediaPlayer)
     {
+		LOG_RESULT(m_mediaPlayer->remove_MediaOpened(m_openedEventToken));
+		LOG_RESULT(m_mediaPlayer->remove_MediaEnded(m_endedEventToken));
+		LOG_RESULT(m_mediaPlayer->remove_MediaFailed(m_failedEventToken));
+
+		// stop playback
+		ComPtr<IMediaPlayerSource2> spMediaPlayerSource;
+		m_mediaPlayer.As(&spMediaPlayerSource);
+		if (spMediaPlayerSource != nullptr)
+			spMediaPlayerSource->put_Source(nullptr);
+
 		if (m_spAdaptiveMediaSource.Get() != nullptr)
 		{
 			LOG_RESULT(m_spAdaptiveMediaSource->remove_DownloadRequested(m_downloadRequestedEventToken));
@@ -769,14 +757,19 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
 			m_spAdaptiveMediaSource = nullptr;
 		}
 
-        ComPtr<IMediaPlayer5> spMediaPlayer5;
-        if (SUCCEEDED(m_mediaPlayer.As(&spMediaPlayer5)))
+        if (m_mediaPlayer5)
         {
-            LOG_RESULT(spMediaPlayer5->remove_VideoFrameAvailable(m_videoFrameAvailableToken));
+            LOG_RESULT(m_mediaPlayer5->remove_VideoFrameAvailable(m_videoFrameAvailableToken));
 
-            spMediaPlayer5.Reset();
-            spMediaPlayer5 = nullptr;
+			m_mediaPlayer5.Reset();
+			m_mediaPlayer5 = nullptr;
         }
+
+		if (m_mediaPlayer3)
+		{
+			m_mediaPlayer3.Reset();
+			m_mediaPlayer3 = nullptr;
+		}
 
 		if (m_spPlaybackItem != nullptr)
 		{
@@ -785,16 +778,6 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
 			m_spPlaybackItem.Reset();
 			m_spPlaybackItem = nullptr;
 		}
-
-        LOG_RESULT(m_mediaPlayer->remove_MediaOpened(m_openedEventToken));
-        LOG_RESULT(m_mediaPlayer->remove_MediaEnded(m_endedEventToken));
-        LOG_RESULT(m_mediaPlayer->remove_MediaFailed(m_failedEventToken));
-
-        // stop playback
-		ComPtr<IMediaPlayerSource2> spMediaPlayerSource;
-		m_mediaPlayer.As(&spMediaPlayerSource);
-		if(spMediaPlayerSource != nullptr)
-			spMediaPlayerSource->put_Source(nullptr);
 
         m_mediaPlayer.Reset();
         m_mediaPlayer = nullptr;
@@ -828,7 +811,7 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
 
 	IFR(m_d3dDevice->CreateShaderResourceView(spTexture.Get(), &srvDesc, &spSRV));
 
-    // create shared texture from the unity texture
+    // create a shared texture from the unity texture
     ComPtr<IDXGIResource1> spDXGIResource;
     IFR(spTexture.As(&spDXGIResource));
 
@@ -836,19 +819,6 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
     ComPtr<ID3D11Texture2D> spMediaTexture;
     ComPtr<IDirect3DSurface> spMediaSurface;
 
-	// commented out while investigating SHARED_NTHANDLE issue
-	/*__int64 ptr = (__int64)(void*)spDXGIResource.Get();
-	WCHAR nameBuffer[MAX_PATH];
-	swprintf_s(nameBuffer, MAX_PATH, L"SharedTextureHandle%I64d", ptr);
-
-	
-	hr = spDXGIResource->CreateSharedHandle(
-        nullptr,
-        DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE,
-		nameBuffer,
-        &sharedHandle);*/
-
-	// added while investigating SHARED_NTHANDLE issue
 	hr = spDXGIResource->GetSharedHandle(&sharedHandle);
 
     if (SUCCEEDED(hr))
@@ -857,8 +827,6 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
         hr = m_mediaDevice.As(&spMediaDevice);
         if (SUCCEEDED(hr))
         {
-			// OpenSharedResource1 changed to OpenSharedResource while  investigating SHARED_NTHANDLE issue
-            //hr = spMediaDevice->OpenSharedResource1(sharedHandle, IID_PPV_ARGS(&spMediaTexture));
 			hr = spMediaDevice->OpenSharedResource(sharedHandle, IID_PPV_ARGS(&spMediaTexture));
 
             if (SUCCEEDED(hr))
@@ -868,15 +836,7 @@ HRESULT CMediaPlayerPlayback::CreateTextures()
         }
     }
 
-    // if anything failed, clean up and return
-    if (FAILED(hr))
-    {
-		// commented yout while investigating SHARED_NTHANDLE issue
-        //if (sharedHandle != INVALID_HANDLE_VALUE)
-        //    CloseHandle(sharedHandle);
-
-        IFR(hr);
-    }
+	IFR(hr);
 
     m_primaryTexture.Attach(spTexture.Detach());
     m_primaryTextureSRV.Attach(spSRV.Detach());
@@ -898,8 +858,6 @@ void CMediaPlayerPlayback::ReleaseTextures()
     // primary texture
     if (m_primarySharedHandle != INVALID_HANDLE_VALUE)
     {
-		// commented yout while investigating SHARED_NTHANDLE issue
-        //CloseHandle(m_primarySharedHandle);
         m_primarySharedHandle = INVALID_HANDLE_VALUE;
     }
 
@@ -916,57 +874,27 @@ void CMediaPlayerPlayback::ReleaseTextures()
     m_primaryTexture = nullptr;
 }
 
-_Use_decl_annotations_
-HRESULT CMediaPlayerPlayback::InitializeMediaPlayerWithPlayReadyDRM()
-{
-	Log(Log_Level_Info, L"CMediaPlayerPlayback::InitializeMediaPlayerWithPlayReadyDRM()");
-
-	HRESULT hr = S_OK;
-
-	auto pm = m_playreadyHandler.GetProtectionManager();
-	if (pm.Get() == nullptr)
-	{
-		Log(Log_Level_Error, L"Cannot initialize protection manager.");
-		return E_FAIL;
-	}
-	else
-	{
-		ComPtr<IMediaPlayerSource> spMediaPlayerSource;
-		IFR(m_mediaPlayer.As(&spMediaPlayerSource));
-
-		IFR(spMediaPlayerSource->put_ProtectionManager(pm.Get()));
-	}
-
-	return S_OK;
-}
-
 
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::AddStateChanged()
 {
-    ComPtr<IMediaPlayer3> spMediaPlayer3;
-    IFR(m_mediaPlayer.As(&spMediaPlayer3));
+	if (m_mediaPlaybackSession)
+	{
+		EventRegistrationToken stateChangedToken;
+		auto stateChanged = Microsoft::WRL::Callback<IMediaPlaybackSessionEventHandler>(this, &CMediaPlayerPlayback::OnStateChanged);
+		IFR(m_mediaPlaybackSession->add_PlaybackStateChanged(stateChanged.Get(), &stateChangedToken));
+		m_stateChangedEventToken = stateChangedToken;
 
-    ComPtr<IMediaPlaybackSession> spSession;
-    IFR(spMediaPlayer3->get_PlaybackSession(&spSession));
+		EventRegistrationToken sizeChangedToken;
+		auto sizeChanged = Microsoft::WRL::Callback<IMediaPlaybackSessionEventHandler>(this, &CMediaPlayerPlayback::OnSizeChanged);
+		IFR(m_mediaPlaybackSession->add_NaturalVideoSizeChanged(sizeChanged.Get(), &sizeChangedToken));
+		m_sizeChangedEventToken = sizeChangedToken;
 
-    EventRegistrationToken stateChangedToken;
-    auto stateChanged = Microsoft::WRL::Callback<IMediaPlaybackSessionEventHandler>(this, &CMediaPlayerPlayback::OnStateChanged);
-    IFR(spSession->add_PlaybackStateChanged(stateChanged.Get(), &stateChangedToken));
-    m_stateChangedEventToken = stateChangedToken;
-
-	EventRegistrationToken sizeChangedToken;
-	auto sizeChanged = Microsoft::WRL::Callback<IMediaPlaybackSessionEventHandler>(this, &CMediaPlayerPlayback::OnStateChanged);
-	IFR(spSession->add_NaturalVideoSizeChanged(sizeChanged.Get(), &sizeChangedToken));
-	m_sizeChangedEventToken = sizeChangedToken;
-
-	EventRegistrationToken durationChangedToken;
-	auto durationChanged = Microsoft::WRL::Callback<IMediaPlaybackSessionEventHandler>(this, &CMediaPlayerPlayback::OnStateChanged);
-	IFR(spSession->add_NaturalDurationChanged(durationChanged.Get(), &durationChangedToken));
-	m_durationChangedEventToken = durationChangedToken;
-
-
-    m_mediaPlaybackSession.Attach(spSession.Detach());
+		EventRegistrationToken durationChangedToken;
+		auto durationChanged = Microsoft::WRL::Callback<IMediaPlaybackSessionEventHandler>(this, &CMediaPlayerPlayback::OnStateChanged);
+		IFR(m_mediaPlaybackSession->add_NaturalDurationChanged(durationChanged.Get(), &durationChangedToken));
+		m_durationChangedEventToken = durationChangedToken;
+	}
 
     return S_OK;
 }
@@ -980,15 +908,18 @@ void CMediaPlayerPlayback::RemoveStateChanged()
         LOG_RESULT(m_mediaPlaybackSession->remove_PlaybackStateChanged(m_stateChangedEventToken));
 		LOG_RESULT(m_mediaPlaybackSession->remove_NaturalVideoSizeChanged(m_sizeChangedEventToken));
 		LOG_RESULT(m_mediaPlaybackSession->remove_NaturalDurationChanged(m_durationChangedEventToken));
-
-        m_mediaPlaybackSession.Reset();
-        m_mediaPlaybackSession = nullptr;
     }
 }
 
 _Use_decl_annotations_
 void CMediaPlayerPlayback::ReleaseResources()
 {
+	if (m_spDeviceManager != nullptr)
+	{
+		m_spDeviceManager = nullptr;
+		MFUnlockDXGIDeviceManager();
+	}
+
     // release dx devices
     m_mediaDevice.Reset();
     m_mediaDevice = nullptr;
@@ -997,11 +928,13 @@ void CMediaPlayerPlayback::ReleaseResources()
     m_d3dDevice = nullptr;
 }
 
-void CMediaPlayerPlayback::DeviceLost()
+void CMediaPlayerPlayback::DeviceShutdown()
 {
+	m_readyForFrames = false;
+
 	PLAYBACK_STATE playbackState;
 	ZeroMemory(&playbackState, sizeof(playbackState));
-	playbackState.type = StateType::StateType_DeviceLost;
+	playbackState.type = StateType::StateType_GraphicsDeviceShutdown;
 	playbackState.state = PlaybackState::PlaybackState_None;
 
 	try
@@ -1012,20 +945,26 @@ void CMediaPlayerPlayback::DeviceLost()
 	catch (...)
 	{
 	}
+
+	ReleaseTextures();
+	ReleaseResources();
+
+	m_pUnityGraphics = nullptr;
 }
 
-void CMediaPlayerPlayback::DeviceRestored()
+void CMediaPlayerPlayback::DeviceReady(IUnityGraphicsD3D11* unityD3D)
 {
+	m_pUnityGraphics = unityD3D;
+
+	InitializeDevices();
+
 	PLAYBACK_STATE playbackState;
 	ZeroMemory(&playbackState, sizeof(playbackState));
-	playbackState.type = StateType::StateType_DeviceRestored;
+	playbackState.type = StateType::StateType_GraphicsDeviceReady;
 	playbackState.state = PlaybackState::PlaybackState_None;
 
 	try
 	{
-		ReleaseResources();
-		InitializeDevices();
-
 		if (m_fnStateCallback != nullptr)
 			m_fnStateCallback(m_pClientObject, playbackState);
 	}
@@ -1041,14 +980,20 @@ HRESULT CMediaPlayerPlayback::OnVideoFrameAvailable(IMediaPlayer* sender, IInspe
 	if (!m_readyForFrames || m_deviceNotReady)
 		return S_OK;
 
-    ComPtr<IMediaPlayer> spMediaPlayer(sender);
-
-    ComPtr<IMediaPlayer5> spMediaPlayer5;
-    IFR(spMediaPlayer.As(&spMediaPlayer5));
-
-    if (nullptr != m_primaryMediaSurface)
+    if (nullptr != m_primaryMediaSurface && m_mediaPlayer5)
     {
-        spMediaPlayer5->CopyFrameToVideoSurface(m_primaryMediaSurface.Get());
+		StereoscopicVideoRenderMode renderMode = StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Mono;
+
+		if (m_mediaPlayer3 &&
+			SUCCEEDED(m_mediaPlayer3->get_StereoscopicVideoRenderMode(&renderMode)) &&
+			renderMode == StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Stereo)
+		{
+			//TODO: stereoscopic rendering with 2 textures 
+		}
+		else
+		{
+			m_mediaPlayer5->CopyFrameToVideoSurface(m_primaryMediaSurface.Get());
+		}
     }
 
     return S_OK;
@@ -1198,12 +1143,21 @@ HRESULT CMediaPlayerPlayback::OnStateChanged(
 }
 
 _Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::OnSizeChanged(ABI::Windows::Media::Playback::IMediaPlaybackSession * sender, IInspectable * args)
+{
+
+	return OnStateChanged(sender, args);
+}
+
+_Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::OnDownloadRequested(ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource * sender, ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSourceDownloadRequestedEventArgs * args)
 {
-	ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSourceDownloadRequestedDeferral> deferral;
-	args->GetDeferral(&deferral);
+	//ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSourceDownloadRequestedDeferral> deferral;
+	//args->GetDeferral(&deferral);
 
-	deferral->Complete();
+	////Insert your download handling code here 
+
+	//deferral->Complete();
 
 	return S_OK;
 }
@@ -1212,10 +1166,10 @@ HRESULT CMediaPlayerPlayback::OnDownloadRequested(ABI::Windows::Media::Streaming
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::OnVideoTracksChanged(IMediaPlaybackItem* pItem, ABI::Windows::Foundation::Collections::IVectorChangedEventArgs* pArgs)
 {
-	if (false == m_noHWDecoding || false == m_make1080MaxWhenNoHWDecoding || m_bIgnoreEvents)
+	if (false == m_noHW4KDecoding || false == m_make1080MaxWhenNoHWDecoding || m_bIgnoreEvents)
 		return S_OK;
 
-	Log(Log_Level_Info, L"Hardware decoding is not supported. Selecting to find a 1080 track if found.");
+	Log(Log_Level_Info, L"Hardware decoding of 4K+ is not supported. Selecting to find a 1080 track if found.");
 
 	ComPtr<ABI::Windows::Foundation::Collections::IVectorView<VideoTrack*>> spVideoTracks;
 	ComPtr<ABI::Windows::Media::Core::ISingleSelectMediaTrackList> spTrackList;
@@ -1498,18 +1452,3 @@ HRESULT CMediaPlayerPlayback::OnCueExited(ABI::Windows::Media::Core::ITimedMetad
 }
 
 
-void CMediaPlayerPlayback::LicenseRequestInternal(void* objectThisPtr, Microsoft::WRL::Wrappers::HString& licenseUriResult, Microsoft::WRL::Wrappers::HString& licenseCustomChallendgeData)
-{
-	CMediaPlayerPlayback* objectThis = reinterpret_cast<CMediaPlayerPlayback*>(objectThisPtr);
-	if (objectThis->m_fnLicenseCallback != nullptr)
-	{
-		objectThis->m_fnLicenseCallback(objectThis->m_pClientObject);
-
-		licenseUriResult.Set(objectThis->m_currentLicenseServiceURL.Get());
-		licenseCustomChallendgeData.Set(objectThis->m_currentLicenseCustomChallendge.Get());
-	}
-	else
-	{
-		Log(Log_Level_Warning, L"DRM license needed, but no licensing callback to call.");
-	}
-}

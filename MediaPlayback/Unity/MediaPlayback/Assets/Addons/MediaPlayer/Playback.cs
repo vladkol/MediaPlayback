@@ -37,14 +37,12 @@ namespace MediaPlayer
         public delegate void PlaybackStateChangedHandler(object sender, ChangedEventArgs<PlaybackState> args);
         public delegate void PlaybackFailedHandler (object sender, long hresult);
         public delegate void TextureUpdatedHandler(object sender);
-        public delegate void DRMLicenseRequestedHandler(object sender, ref PlayReadyLicenseData item);
         public delegate void SubtitleItemEnteredHandler(object sender, string subtitlesTrackId, string textCueId, string language, string[] textLines);
         public delegate void SubtitleItemExitedHandler(object sender, string subtitlesTrackId, string textCueId);
 
         public event PlaybackStateChangedHandler PlaybackStateChanged;
         public event PlaybackFailedHandler PlaybackFailed;
         public event TextureUpdatedHandler TextureUpdated;
-        public event DRMLicenseRequestedHandler DRMLicenseRequested;
         public event SubtitleItemEnteredHandler SubtitleItemEntered;
         public event SubtitleItemExitedHandler SubtitleItemExited;
 
@@ -96,8 +94,6 @@ namespace MediaPlayer
 
         public float textureOffsetX = 0.0f;
         public float textureOffsetY = 0.0f;
-
-        public bool usePlayReadyDRM = false;
 
         public bool forceStationaryXROnPlayback = false;
 
@@ -833,11 +829,11 @@ namespace MediaPlayer
                     this.State = PlaybackState.None;
                     loaded = false;
                     break;
-                case Plugin.StateType.StateType_DeviceLost:
+                case Plugin.StateType.StateType_GraphicsDeviceShutdown:
                     Debug.LogWarning("Graphics device was lost!");
                     break;
-                case Plugin.StateType.StateType_DeviceRestored:
-                    Debug.LogWarning("Graphics device was restored! Recreating the playback texture!");
+                case Plugin.StateType.StateType_GraphicsDeviceReady:
+                    Debug.LogWarning("Graphics device is ready!");
                     UpdateTexture();
                     break;
                 default:
@@ -930,8 +926,8 @@ namespace MediaPlayer
                 StateType_Opened,
                 StateType_StateChanged,
                 StateType_Failed,
-                StateType_DeviceLost,
-                StateType_DeviceRestored
+                StateType_GraphicsDeviceShutdown,
+                StateType_GraphicsDeviceReady
             };
 
             [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -1002,8 +998,8 @@ namespace MediaPlayer
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetVolume")]
             internal static extern long SetVolume(IntPtr pluginInstance, double volume);
 
-            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "IsHWDecodingSupported")]
-            internal static extern long IsHWDecodingSupported(IntPtr pluginInstance, out bool hwDecodingSupported);
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "IsHardware4KDecodingSupported")]
+            internal static extern long IsHardware4KDecodingSupported(IntPtr pluginInstance, out bool hardware4KDecodingSupported);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetMediaPlayer")]
             internal static extern long GetMediaPlayer(IntPtr pluginInstance, out IntPtr ppvUnknown);

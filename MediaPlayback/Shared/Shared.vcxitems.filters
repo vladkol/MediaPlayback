@@ -4,9 +4,6 @@
     <Filter Include="Unity">
       <UniqueIdentifier>{731ff1bd-ba9d-4341-8f7e-aed57bc4dd54}</UniqueIdentifier>
     </Filter>
-    <Filter Include="PlayReady">
-      <UniqueIdentifier>{1c975ed4-e494-4020-82c7-80d2f17b2b63}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)pch.h" />
@@ -34,17 +31,11 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)MediaHelpers.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.h">
-      <Filter>PlayReady</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)pch.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)dllmain.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaPlayerPlayback.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MediaHelpers.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)PlayReady\PlayReadyHandler.cpp">
-      <Filter>PlayReady</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>

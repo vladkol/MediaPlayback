@@ -14,7 +14,6 @@
 #include <string>
 #include <mutex>
 
-#include "PlayReady\PlayReadyHandler.h"
 
 enum class StateType : UINT32
 {
@@ -22,8 +21,8 @@ enum class StateType : UINT32
     StateType_Opened,
     StateType_StateChanged,
     StateType_Failed,
-	StateType_DeviceLost,
-	StateType_DeviceRestored
+	StateType_GraphicsDeviceShutdown,
+	StateType_GraphicsDeviceReady
 };
 
 enum class PlaybackState : UINT32
@@ -67,8 +66,6 @@ extern "C" typedef void(UNITY_INTERFACE_API *StateChangedCallback)(
 	_In_ void* pClientObject,
     _In_ PLAYBACK_STATE args);
 
-extern "C" typedef void(UNITY_INTERFACE_API *DRMLicenseRequestedCallback)(
-	_In_ void* pClientObject);
 
 extern "C" typedef void(UNITY_INTERFACE_API *SubtitleItemEnteredCallback)(
 	_In_ void* pClientObject, _In_ const wchar_t* subtitlesTrackId, _In_ const wchar_t* textCueId, _In_ const wchar_t* language, _In_ const wchar_t** textLines, _In_ unsigned int lineCount);
@@ -86,7 +83,6 @@ typedef ABI::Windows::Foundation::ITypedEventHandler<ABI::Windows::Media::Core::
 
 DECLARE_INTERFACE_IID_(IMediaPlayerPlayback, IUnknown, "9669c78e-42c4-4178-a1e3-75b03d0f8c9a")
 {
-    STDMETHOD(CreatePlaybackTexture)(_In_ UINT32 width, _In_ UINT32 height, _COM_Outptr_ void** ppvTexture) PURE;
     STDMETHOD(LoadContent)(_In_ LPCWSTR pszContentLocation) PURE;
     STDMETHOD(Play)() PURE;
     STDMETHOD(Pause)() PURE;
@@ -95,9 +91,7 @@ DECLARE_INTERFACE_IID_(IMediaPlayerPlayback, IUnknown, "9669c78e-42c4-4178-a1e3-
 	STDMETHOD(Seek)(_In_ LONGLONG position) PURE;
 	STDMETHOD(SetVolume)(_In_ DOUBLE volume) PURE;
 	STDMETHOD(GetIUnknown)(_Out_ IUnknown** ppUnknown) PURE;
-	STDMETHOD(IsHWDecodingSupported)(_Out_ BOOL* pSupportsHWVideoDecoding) PURE;
-	STDMETHOD(SetDRMLicense)(_In_ LPCWSTR pszlicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData) PURE;
-	STDMETHOD(SetDRMLicenseCallback)(_In_ DRMLicenseRequestedCallback fnCallback) PURE;
+	STDMETHOD(IsHardware4KDecodingSupported)(_Out_ BOOL* pSupportsHardware4KVideoDecoding) PURE;
 	STDMETHOD(GetSubtitlesTrackCount)(_Out_ unsigned int* count) PURE;
 	STDMETHOD(GetSubtitlesTrack)(_In_ unsigned int index, _Out_ const wchar_t** trackId, _Out_ const wchar_t** trackLabel, _Out_ const wchar_t** trackLanguage) PURE;
 	STDMETHOD(SetSubtitlesCallbacks)(_In_ SubtitleItemEnteredCallback fnEnteredCallback, _In_ SubtitleItemExitedCallback fnExitedCallback) PURE;
@@ -111,8 +105,8 @@ class CMediaPlayerPlayback
 {
 public:
 
-	static void ReportDeviceLost();
-	static void ReportDeviceReady();
+	static void GraphicsDeviceShutdown();
+	static void GraphicsDeviceReady(IUnityInterfaces* pUnityInterfaces);
 
     static HRESULT CreateMediaPlayback(
         _In_ UnityGfxRenderer apiType, 
@@ -130,10 +124,6 @@ public:
         _In_ IUnityGraphicsD3D11* pUnityDevice);
 
     // IMediaPlayerPlayback
-    IFACEMETHOD(CreatePlaybackTexture)(
-        _In_ UINT32 width, 
-        _In_ UINT32 height, 
-        _COM_Outptr_ void** ppvTexture);
     IFACEMETHOD(LoadContent)(_In_ LPCWSTR pszContentLocation);
 
     IFACEMETHOD(Play)();
@@ -145,10 +135,7 @@ public:
 	IFACEMETHOD(SetVolume)(_In_ DOUBLE volume);
 
 	IFACEMETHOD(GetIUnknown)(_Out_ IUnknown** ppUnknown);
-	IFACEMETHOD(IsHWDecodingSupported)(_Out_ BOOL* pSupportsHWVideoDecoding);
-
-	IFACEMETHOD(SetDRMLicense)(_In_ LPCWSTR pszlicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData);
-	IFACEMETHOD(SetDRMLicenseCallback)(_In_ DRMLicenseRequestedCallback fnCallback);
+	IFACEMETHOD(IsHardware4KDecodingSupported)(_Out_ BOOL* pSupportsHardware4KVideoDecoding);
 
 	IFACEMETHOD(GetSubtitlesTrackCount)(_Out_ unsigned int* count);
 	IFACEMETHOD(GetSubtitlesTrack)(_In_ unsigned int index, _Out_ const wchar_t** trackId, _Out_ const wchar_t** trackLabel, _Out_ const wchar_t** trackLanguage);
@@ -175,6 +162,9 @@ protected:
     HRESULT OnStateChanged(
         _In_ ABI::Windows::Media::Playback::IMediaPlaybackSession* sender,
         _In_ IInspectable* args);
+	HRESULT OnSizeChanged(
+		_In_ ABI::Windows::Media::Playback::IMediaPlaybackSession* sender,
+		_In_ IInspectable* args);
 
 	HRESULT OnDownloadRequested(
 		_In_ ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource* sender,
@@ -185,15 +175,16 @@ protected:
 	HRESULT OnCueEntered(ABI::Windows::Media::Core::ITimedMetadataTrack* pTrack, ABI::Windows::Media::Core::IMediaCueEventArgs* pArgs);
 	HRESULT OnCueExited(ABI::Windows::Media::Core::ITimedMetadataTrack* pTrack, ABI::Windows::Media::Core::IMediaCueEventArgs* pArgs);
 
-	static void LicenseRequestInternal(void* objectThisPtr, Microsoft::WRL::Wrappers::HString& licenseUriResult, Microsoft::WRL::Wrappers::HString& licenseCustomChallendgeDataResult);
-
 private:
+	HRESULT CreatePlaybackTexture(
+		_In_ UINT32 width,
+		_In_ UINT32 height,
+		_COM_Outptr_ void** ppvTexture);
+
     HRESULT CreateMediaPlayer();
     void ReleaseMediaPlayer();
 
 	HRESULT InitializeDevices();
-
-	HRESULT InitializeMediaPlayerWithPlayReadyDRM();
 
     HRESULT CreateTextures();
     void ReleaseTextures();
@@ -203,8 +194,8 @@ private:
 
     void ReleaseResources();
 
-	void DeviceLost();
-	void DeviceRestored();
+	void DeviceShutdown();
+	void DeviceReady(IUnityGraphicsD3D11* unityD3D);
 
 private:
 	IUnityGraphicsD3D11*				 m_pUnityGraphics;
@@ -214,12 +205,16 @@ private:
 	Microsoft::WRL::ComPtr<IMFDXGIDeviceManager> m_spDeviceManager;
 
     StateChangedCallback m_fnStateCallback;
-	DRMLicenseRequestedCallback m_fnLicenseCallback;
 	SubtitleItemEnteredCallback m_fnSubtitleEntered;
 	SubtitleItemExitedCallback m_fnSubtitleExited;
 	void* m_pClientObject;
 
     Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlayer> m_mediaPlayer;
+	Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlayer3> m_mediaPlayer3;
+	Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlayer5> m_mediaPlayer5;
+
+	Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackSession> m_mediaPlaybackSession;
+
 	UINT m_uiDeviceResetToken;
     EventRegistrationToken m_openedEventToken;
     EventRegistrationToken m_endedEventToken;
@@ -230,14 +225,12 @@ private:
 	EventRegistrationToken m_timedMetadataChangedEventToken;
 
 	bool m_bIgnoreEvents;
-	PlayReadyHandler m_playreadyHandler;
 	Microsoft::WRL::Wrappers::HString m_currentLicenseServiceURL;
 	Microsoft::WRL::Wrappers::HString m_currentLicenseCustomChallendge;
 
 	Microsoft::WRL::ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource> m_spAdaptiveMediaSource;
 	Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackItem> m_spPlaybackItem;
-
-    Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackSession> m_mediaPlaybackSession;
+    
     EventRegistrationToken m_stateChangedEventToken;
 	EventRegistrationToken m_sizeChangedEventToken;
 	EventRegistrationToken m_durationChangedEventToken;
@@ -253,7 +246,7 @@ private:
 	std::vector<SUBTITLE_TRACK> m_subtitleTracks;
 
 	bool m_readyForFrames;
-	bool m_noHWDecoding;
+	bool m_noHW4KDecoding;
 	bool m_make1080MaxWhenNoHWDecoding;
 	bool m_releasing;
 

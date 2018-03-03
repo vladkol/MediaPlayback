@@ -73,11 +73,11 @@ namespace MediaPlayer
 
         public TargetRenderer[] targetRenderers;
 
-        public bool hardwareDecoding4KSupported
+        public bool hardware4KDecodingSupported
         {
             get
             {
-                return hwDecoding4KSupported;
+                return hw4KDecodingSupported;
             }
         }
 
@@ -150,7 +150,7 @@ namespace MediaPlayer
 
         private IntPtr pluginInstance = IntPtr.Zero;
         private GCHandle thisObject;
-        private bool hwDecoding4KSupported = true;
+        private bool hw4KDecodingSupported = true;
 
         private string currentItem = string.Empty;
 
@@ -556,9 +556,9 @@ namespace MediaPlayer
             // create media playback
             CheckHR(Plugin.CreateMediaPlayback(this.stateCallback, thisObjectPtr, out pluginInstance));
 
-            Plugin.IsHWDecodingSupported(pluginInstance, out hwDecodingSupported);
+            Plugin.IsHardware4KDecodingSupported(pluginInstance, out hw4KDecodingSupported);
 
-            Debug.LogFormat("MediaPlayback has been created. HW decoding is {0}.", hwDecodingSupported ? "supported" : "not supported");
+            Debug.LogFormat("MediaPlayback has been created. Hardware decoding of 4K+ is {0}.", hw4KDecodingSupported ? "supported" : "not supported");
 
             UpdateTexture();
 
@@ -940,8 +940,8 @@ namespace MediaPlayer
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "SetVolume")]
             internal static extern long SetVolume(IntPtr pluginInstance, double volume);
 
-            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "IsHWDecodingSupported")]
-            internal static extern long IsHWDecodingSupported(IntPtr pluginInstance, out bool hwDecodingSupported);
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "IsHardware4KDecodingSupported")]
+            internal static extern long IsHardware4KDecodingSupported(IntPtr pluginInstance, out bool hwDecoding4KSupported);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetMediaPlayer")]
             internal static extern long GetMediaPlayer(IntPtr pluginInstance, out IntPtr ppvUnknown);
