@@ -165,9 +165,13 @@ HRESULT CMediaPlayerPlayback::RuntimeClassInitialize(
     NULL_CHK(pUnityDevice);
 
 	m_pClientObject = pClientObject;
+
+	HRESULT hr = DeviceReady(pUnityDevice);
+
+	// only initialize callback here so DeviceReady doensn't fire an event before we returned back to the client side. 
 	m_fnStateCallback = fnCallback;
 
-	DeviceReady(pUnityDevice);
+	return hr;
 }
 
 
@@ -254,18 +258,36 @@ HRESULT CMediaPlayerPlayback::InitializeDevices()
 
 
 _Use_decl_annotations_
-HRESULT CMediaPlayerPlayback::CreatePlaybackTexture(
-    UINT32 width,
-    UINT32 height, 
-    void** ppvTexture)
+HRESULT CMediaPlayerPlayback::CreatePlaybackTextures()
 {
-    NULL_CHK(ppvTexture);
-
-    if (width < 1 || height < 1)
-        IFR(E_INVALIDARG);
-
-    *ppvTexture = nullptr;
 	m_readyForFrames = false;
+
+	ReleaseTextures();
+
+	UINT32 width = 0;
+	UINT32 height = 0;
+	bool isStereoscopic = false;
+
+	m_mediaPlaybackSession->get_NaturalVideoWidth(&width);
+	m_mediaPlaybackSession->get_NaturalVideoHeight(&height);
+
+	if (!width || !height)
+		return E_UNEXPECTED;
+
+	if (!m_d3dDevice || !m_mediaPlayer3 || !m_mediaPlaybackSession)
+	{
+		return E_ILLEGAL_METHOD_CALL;
+	}
+
+	StereoscopicVideoRenderMode renderMode = StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Mono;
+	m_mediaPlayer3->get_StereoscopicVideoRenderMode(&renderMode);
+
+	//  if rendering is stereoscopic, we force over-under layout and the frame texture height is 2x "natural" height 
+	if (renderMode == StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Stereo)
+	{
+		isStereoscopic = true;
+		height *= 2;
+	}
 
     // create the video texture description based on texture format
 	ZeroMemory(&m_textureDesc, sizeof(m_textureDesc));
@@ -278,12 +300,84 @@ HRESULT CMediaPlayerPlayback::CreatePlaybackTexture(
 	m_textureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED; 
     m_textureDesc.Usage = D3D11_USAGE_DEFAULT;
 
-    IFR(CreateTextures());
+	// create staging texture on unity device
+	ComPtr<ID3D11Texture2D> spTexture;
+	IFR(m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, spTexture.ReleaseAndGetAddressOf()));
 
-    ComPtr<ID3D11ShaderResourceView> spSRV;
-    IFR(m_primaryTextureSRV.CopyTo(&spSRV));
+	auto srvDesc = CD3D11_SHADER_RESOURCE_VIEW_DESC(spTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D);
+	ComPtr<ID3D11ShaderResourceView> spSRV;
 
-    *ppvTexture = spSRV.Detach();
+	IFR(m_d3dDevice->CreateShaderResourceView(spTexture.Get(), &srvDesc, spSRV.ReleaseAndGetAddressOf()));
+
+	// create a shared texture from the unity texture
+	ComPtr<IDXGIResource1> spDXGIResource;
+	IFR(spTexture.As(&spDXGIResource));
+
+	HANDLE sharedHandle = INVALID_HANDLE_VALUE;
+	ComPtr<ID3D11Texture2D> spMediaTexture;
+	ComPtr<IDirect3DSurface> spMediaSurface;
+
+	HRESULT hr = spDXGIResource->GetSharedHandle(&sharedHandle);
+
+	if (SUCCEEDED(hr))
+	{
+		ComPtr<ID3D11Device1> spMediaDevice;
+		hr = m_mediaDevice.As(&spMediaDevice);
+		if (SUCCEEDED(hr))
+		{
+			hr = spMediaDevice->OpenSharedResource(sharedHandle, IID_PPV_ARGS(&spMediaTexture));
+
+			if (SUCCEEDED(hr))
+			{
+				hr = GetSurfaceFromTexture(spMediaTexture.Get(), &spMediaSurface);
+			}
+		}
+	}
+
+	IFR(hr);
+
+	m_primaryTexture.Attach(spTexture.Detach());
+	m_primaryTextureSRV.Attach(spSRV.Detach());
+
+	m_primarySharedHandle = sharedHandle;
+	m_primaryMediaTexture.Attach(spMediaTexture.Detach());
+	m_primaryMediaSurface.Attach(spMediaSurface.Detach());
+
+	// Is stereoscopic video, we need 2 staging textures for eyes. We always render them as over/under, so height must be 2 times less
+	if (isStereoscopic)
+	{
+		CD3D11_TEXTURE2D_DESC eyeTextureDesc;
+		ZeroMemory(&eyeTextureDesc, sizeof(CD3D11_TEXTURE2D_DESC));
+		m_primaryMediaTexture->GetDesc(&eyeTextureDesc);
+
+		eyeTextureDesc.Height /= 2;
+		IFR(m_mediaDevice->CreateTexture2D(&eyeTextureDesc, nullptr, m_leftEyeMediaTexture.ReleaseAndGetAddressOf()));
+		IFR(GetSurfaceFromTexture(m_leftEyeMediaTexture.Get(), m_leftEyeMediaSurface.ReleaseAndGetAddressOf()));
+		
+		IFR(m_mediaDevice->CreateTexture2D(&eyeTextureDesc, nullptr, m_rightEyeMediaTexture.ReleaseAndGetAddressOf()));
+		IFR(GetSurfaceFromTexture(m_rightEyeMediaTexture.Get(), m_rightEyeMediaSurface.ReleaseAndGetAddressOf()));
+	}
+
+	PLAYBACK_STATE playbackState;
+	ZeroMemory(&playbackState, sizeof(playbackState));
+	playbackState.type = StateType::StateType_NewFrameTexture;
+	playbackState.state = PlaybackState::PlaybackState_NA;
+
+	playbackState.description.width = width;
+	playbackState.description.height = height;
+
+	boolean canSeek = false;
+	m_mediaPlaybackSession->get_CanSeek(&canSeek);
+
+	ABI::Windows::Foundation::TimeSpan duration;
+	m_mediaPlaybackSession->get_NaturalDuration(&duration);
+
+	playbackState.description.canSeek = canSeek;
+	playbackState.description.duration = duration.Duration;
+	playbackState.description.isStereoscopic = isStereoscopic ? 1 : 0;
+
+	if (m_fnStateCallback != nullptr)
+		m_fnStateCallback(m_pClientObject, playbackState);
 
 	m_readyForFrames = true;
 
@@ -494,6 +588,24 @@ HRESULT CMediaPlayerPlayback::Stop()
 	m_bIgnoreEvents = false;
 
 	return hr;
+}
+
+_Use_decl_annotations_
+HRESULT CMediaPlayerPlayback::GetPlaybackTexture(IUnknown** d3d11TexturePtr, LPBYTE isStereoscopic)
+{
+	if (!d3d11TexturePtr || !isStereoscopic)
+		return E_INVALIDARG;
+
+	if (!m_primaryMediaTexture || !m_mediaPlayer3)
+		return E_ILLEGAL_METHOD_CALL;
+
+	*d3d11TexturePtr = m_primaryMediaTexture.Get();
+
+	StereoscopicVideoRenderMode renderMode = StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Mono;
+	m_mediaPlayer3->get_StereoscopicVideoRenderMode(&renderMode);
+	*isStereoscopic = renderMode == StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Stereo ? TRUE : FALSE;
+
+	return S_OK;
 }
 
 _Use_decl_annotations_
@@ -713,8 +825,6 @@ HRESULT CMediaPlayerPlayback::CreateMediaPlayer()
 	IFR(m_mediaPlayer.As(&spMediaPlayer3));
 	m_mediaPlayer3.Attach(spMediaPlayer3.Detach());
 
-	ComPtr<IMediaPlayer5> spMediaPlayer5;
-	IFR(m_mediaPlayer.As(&spMediaPlayer5)); 
 	m_mediaPlayer5.Attach(spMediaPlayer5.Detach());
 
 	ComPtr<IMediaPlaybackSession> spSession;
@@ -784,69 +894,6 @@ void CMediaPlayerPlayback::ReleaseMediaPlayer()
     }
 }
 
-_Use_decl_annotations_
-HRESULT CMediaPlayerPlayback::CreateTextures()
-{
-	Log(Log_Level_Info, L"CMediaPlayerPlayback::CreateTextures()");
-
-    if (m_deviceNotReady ||  nullptr != m_primaryTexture || nullptr != m_primaryTextureSRV)
-        ReleaseTextures();
-
-	if (m_deviceNotReady)
-		return E_ABORT;
-
-	HRESULT hr = S_OK;
-
-	if (!m_d3dDevice)
-	{
-		return E_ILLEGAL_METHOD_CALL;
-	}
-
-    // create staging texture on unity device
-    ComPtr<ID3D11Texture2D> spTexture;
-	IFR(m_d3dDevice->CreateTexture2D(&m_textureDesc, nullptr, spTexture.ReleaseAndGetAddressOf()));
-
-    auto srvDesc = CD3D11_SHADER_RESOURCE_VIEW_DESC(spTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D);
-    ComPtr<ID3D11ShaderResourceView> spSRV;
-
-	IFR(m_d3dDevice->CreateShaderResourceView(spTexture.Get(), &srvDesc, &spSRV));
-
-    // create a shared texture from the unity texture
-    ComPtr<IDXGIResource1> spDXGIResource;
-    IFR(spTexture.As(&spDXGIResource));
-
-    HANDLE sharedHandle = INVALID_HANDLE_VALUE;
-    ComPtr<ID3D11Texture2D> spMediaTexture;
-    ComPtr<IDirect3DSurface> spMediaSurface;
-
-	hr = spDXGIResource->GetSharedHandle(&sharedHandle);
-
-    if (SUCCEEDED(hr))
-    {
-        ComPtr<ID3D11Device1> spMediaDevice;
-        hr = m_mediaDevice.As(&spMediaDevice);
-        if (SUCCEEDED(hr))
-        {
-			hr = spMediaDevice->OpenSharedResource(sharedHandle, IID_PPV_ARGS(&spMediaTexture));
-
-            if (SUCCEEDED(hr))
-            {
-                hr = GetSurfaceFromTexture(spMediaTexture.Get(), &spMediaSurface);
-            }
-        }
-    }
-
-	IFR(hr);
-
-    m_primaryTexture.Attach(spTexture.Detach());
-    m_primaryTextureSRV.Attach(spSRV.Detach());
-
-    m_primarySharedHandle = sharedHandle;
-    m_primaryMediaTexture.Attach(spMediaTexture.Detach());
-    m_primaryMediaSurface.Attach(spMediaSurface.Detach());
-
-    return hr;
-}
 
 _Use_decl_annotations_
 void CMediaPlayerPlayback::ReleaseTextures()
@@ -872,6 +919,15 @@ void CMediaPlayerPlayback::ReleaseTextures()
 
     m_primaryTexture.Reset();
     m_primaryTexture = nullptr;
+
+	m_leftEyeMediaTexture.Reset();
+	m_leftEyeMediaTexture = nullptr;
+	m_leftEyeMediaSurface.Reset();
+	m_leftEyeMediaSurface = nullptr;
+	m_rightEyeMediaTexture.Reset();
+	m_rightEyeMediaTexture = nullptr;
+	m_rightEyeMediaSurface.Reset();
+	m_rightEyeMediaSurface = nullptr;
 }
 
 
@@ -917,6 +973,7 @@ void CMediaPlayerPlayback::ReleaseResources()
 	if (m_spDeviceManager != nullptr)
 	{
 		m_spDeviceManager = nullptr;
+
 		MFUnlockDXGIDeviceManager();
 	}
 
@@ -952,11 +1009,11 @@ void CMediaPlayerPlayback::DeviceShutdown()
 	m_pUnityGraphics = nullptr;
 }
 
-void CMediaPlayerPlayback::DeviceReady(IUnityGraphicsD3D11* unityD3D)
+HRESULT CMediaPlayerPlayback::DeviceReady(IUnityGraphicsD3D11* unityD3D)
 {
 	m_pUnityGraphics = unityD3D;
 
-	InitializeDevices();
+	HRESULT hr = InitializeDevices();
 
 	PLAYBACK_STATE playbackState;
 	ZeroMemory(&playbackState, sizeof(playbackState));
@@ -971,6 +1028,13 @@ void CMediaPlayerPlayback::DeviceReady(IUnityGraphicsD3D11* unityD3D)
 	catch (...)
 	{
 	}
+
+	if (m_textureDesc.Width && m_textureDesc.Height)
+	{
+		hr = CreatePlaybackTextures();
+	}
+
+	return hr;
 }
 
 
@@ -982,13 +1046,31 @@ HRESULT CMediaPlayerPlayback::OnVideoFrameAvailable(IMediaPlayer* sender, IInspe
 
     if (nullptr != m_primaryMediaSurface && m_mediaPlayer5)
     {
-		StereoscopicVideoRenderMode renderMode = StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Mono;
-
-		if (m_mediaPlayer3 &&
-			SUCCEEDED(m_mediaPlayer3->get_StereoscopicVideoRenderMode(&renderMode)) &&
-			renderMode == StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Stereo)
+		if (m_leftEyeMediaSurface && m_rightEyeMediaSurface) // if we have both eyes separate textures, we are rendering stereoscopic
 		{
-			//TODO: stereoscopic rendering with 2 textures 
+#ifdef _DEBUG
+			StereoscopicVideoRenderMode renderMode = StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Mono;
+			m_mediaPlayer3->get_StereoscopicVideoRenderMode(&renderMode);
+			assert(renderMode == StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Stereo);
+#endif
+			HRESULT hr = m_mediaPlayer5->CopyFrameToStereoscopicVideoSurfaces(m_leftEyeMediaSurface.Get(), m_rightEyeMediaSurface.Get());
+			
+			if (SUCCEEDED(hr))
+			{
+				ComPtr<ID3D11DeviceContext> context;
+				m_mediaDevice->GetImmediateContext(&context);
+
+				if (context)
+				{
+					D3D11_TEXTURE2D_DESC eyeTextureDesc = { 0 };
+					m_rightEyeMediaTexture->GetDesc(&eyeTextureDesc);
+
+					// once rendered to eye textures, copy them to the target frame texture which has 2 times bigger height (we force over/under layout)
+					context->CopySubresourceRegion(m_primaryMediaTexture.Get(), 0, 0, 0, 0, m_leftEyeMediaTexture.Get(), 0, nullptr);
+					context->CopySubresourceRegion(m_primaryMediaTexture.Get(), 0, 0, eyeTextureDesc.Height, 0, m_rightEyeMediaTexture.Get(), 0, nullptr);
+
+				}
+			}
 		}
 		else
 		{
@@ -1028,6 +1110,9 @@ HRESULT CMediaPlayerPlayback::OnOpened(
     ABI::Windows::Foundation::TimeSpan duration;
     IFR(spSession->get_NaturalDuration(&duration));
 
+	StereoscopicVideoRenderMode renderMode = StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Mono;
+	m_mediaPlayer3->get_StereoscopicVideoRenderMode(&renderMode);
+
     PLAYBACK_STATE playbackState;
     ZeroMemory(&playbackState, sizeof(playbackState));
     playbackState.type = StateType::StateType_Opened;
@@ -1036,6 +1121,8 @@ HRESULT CMediaPlayerPlayback::OnOpened(
     playbackState.description.height = height;
     playbackState.description.canSeek = canSeek;
     playbackState.description.duration = duration.Duration;
+	playbackState.description.isStereoscopic =
+		(renderMode == StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Stereo) ? 1 : 0;
 
     if (m_fnStateCallback != nullptr)
         m_fnStateCallback(m_pClientObject, playbackState);
@@ -1122,6 +1209,15 @@ HRESULT CMediaPlayerPlayback::OnStateChanged(
 		if (SUCCEEDED(session->get_NaturalVideoWidth(&width)) &&
 		    SUCCEEDED(session->get_NaturalVideoHeight(&height)) )
 		{
+			StereoscopicVideoRenderMode renderMode = StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Mono;
+			m_mediaPlayer3->get_StereoscopicVideoRenderMode(&renderMode);
+
+			//  if rendering is stereoscopic, we force over-under layout and the frame texture height is 2x "natural" height 
+			if (renderMode == StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Stereo)
+			{
+				height *= 2;
+			}
+
 			playbackState.description.width = width;
 			playbackState.description.height = height;
 
@@ -1133,6 +1229,8 @@ HRESULT CMediaPlayerPlayback::OnStateChanged(
 
 			playbackState.description.canSeek = canSeek;
 			playbackState.description.duration = duration.Duration;
+			playbackState.description.isStereoscopic =
+				(renderMode == StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Stereo) ? 1 : 0;
 		}
 	}
 
@@ -1143,10 +1241,21 @@ HRESULT CMediaPlayerPlayback::OnStateChanged(
 }
 
 _Use_decl_annotations_
-HRESULT CMediaPlayerPlayback::OnSizeChanged(ABI::Windows::Media::Playback::IMediaPlaybackSession * sender, IInspectable * args)
+HRESULT CMediaPlayerPlayback::OnSizeChanged(ABI::Windows::Media::Playback::IMediaPlaybackSession*, IInspectable*)
 {
+	UINT32 width = 0;
+	UINT32 height = 0;
 
-	return OnStateChanged(sender, args);
+	m_mediaPlaybackSession->get_NaturalVideoWidth(&width);
+	m_mediaPlaybackSession->get_NaturalVideoHeight(&height);
+
+	if (width && height)
+	{
+		ReleaseTextures();
+		CreatePlaybackTextures();
+	}
+
+	return S_OK;
 }
 
 _Use_decl_annotations_

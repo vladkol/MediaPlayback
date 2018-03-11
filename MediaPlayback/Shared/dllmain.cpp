@@ -104,6 +104,15 @@ extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API Stop(_In_ IMediaPl
     return spMediaPlayback->Stop();
 }
 
+
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetPlaybackTexture(_In_ IMediaPlayerPlayback* spMediaPlayback, _Out_ IUnknown** d3d11TexturePtr, _Out_ LPBYTE isStereoscopic)
+{
+	NULL_CHK(spMediaPlayback);
+
+	return spMediaPlayback->GetPlaybackTexture(d3d11TexturePtr, isStereoscopic);
+}
+
+
 extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetDurationAndPosition(_In_ IMediaPlayerPlayback* spMediaPlayback, _Out_ LONGLONG* duration, _Out_ LONGLONG* position)
 {
 	NULL_CHK(spMediaPlayback);

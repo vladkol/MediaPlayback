@@ -14,8 +14,6 @@ Shader "360 Video/360 XR Stereo Panorama"
 	Properties
 	{
 		_MainTex("Spherical (HDR)", 2D) = "white" {}
-		_MainTexLeft("Stereoscopic Left Eye (Spherical, HDR)", 2D) = "white" {}
-		_MainTexRight("Stereoscopic Right Eye (Spherical, HDR)", 2D) = "white" {}
 		_Tint("Tint Color", Color) = (.5, .5, .5, .5)
 		[Gamma] _Exposure("Exposure", Range(0, 8)) = 1.0
 		[Toggle] _isStereo("Stereoscopic Mode", Float) = 0
@@ -55,14 +53,6 @@ Shader "360 Video/360 XR Stereo Panorama"
 			float4 _MainTex_ST;
 			half4 _MainTex_HDR;
 
-			sampler2D _MainTexLeft;
-			float4 _MainTexLeft_ST;
-			half4 _MainTexLeft_HDR;
-
-			sampler2D _MainTexRight;
-			float4 _MainTexRight_ST;
-			half4 _MainTexRight_HDR;
-
 			half4 _Tint;
 			half _Exposure;
 			half _isStereo; 
@@ -77,14 +67,16 @@ Shader "360 Video/360 XR Stereo Panorama"
 				o.vertex = UnityObjectToClipPos(v.vertex);
 				v.texcoord.x = 1 - v.texcoord.x;
 
-				o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
+				half2 texcoord = v.texcoord;
 
 				if (_isStereo > 0)
 				{
 					if (unity_StereoEyeIndex > 0)
-						o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTexRight);
+						texcoord.y = 0.5 + texcoord.y / 2;
 					else
-						o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTexLeft);
+						texcoord.y = texcoord.y / 2;
+
+					o.texcoord = TRANSFORM_TEX(texcoord, _MainTex);
 				}
 
 				return o;
@@ -94,20 +86,6 @@ Shader "360 Video/360 XR Stereo Panorama"
 			{
 				half4 texHDR = _MainTex_HDR;
 				half4 texCol = tex2D(_MainTex, i.texcoord);
-
-				if (_isStereo > 0)
-				{
-					if (unity_StereoEyeIndex > 0)
-					{
-						texCol = tex2D(_MainTexRight, i.texcoord);
-						texHDR = _MainTexRight_HDR;
-					}
-					else
-					{
-						texCol = tex2D(_MainTexLeft, i.texcoord);
-						texHDR = _MainTexLeft_HDR;
-					}
-				}
 
 				half3 color = DecodeHDR(texCol, texHDR);
 

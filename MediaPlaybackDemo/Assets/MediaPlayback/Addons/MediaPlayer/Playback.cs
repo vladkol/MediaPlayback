@@ -17,44 +17,44 @@ using UnityEngine;
 
 namespace MediaPlayer
 {
-    public enum VideoLayout
-    {
-        Mono = 0,
-        StereoOverUnder,
-        StereoSideBySide
-    }
-
-    public enum ForcedStereoLayout
+    public enum PlaybackState
     {
         None = 0,
-        StereoOverUnder,
-        StereoSideBySide
-    }
+        Opening,
+        Buffering,
+        Playing,
+        Paused,
+        Ended,
+        NA = 255
+    };
 
+    public class ChangedEventArgs<T>
+    {
+        public T PreviousState;
+        public T CurrentState;
+
+        public ChangedEventArgs(T previousState, T currentState)
+        {
+            this.PreviousState = previousState;
+            this.CurrentState = currentState;
+        }
+    }
 
     public enum TargetRenderingMode
     {
         Mono = 0, 
-        StereoBothEyes,
-        StereoLeftEyeOnly, 
-        StereoRightEyeOnly
+        Stereo,
     }
 
     public class TargetRenderer
     {
-        Renderer targetRenderer;
+        public Renderer targetRenderer;
+        public bool isStereo = false;
+        public bool forceStereo = false;
 
-        [Tooltip("If 'Stereo Both Eyes' is selected, requres a shader accepting left and right eyes' textures separately.")]
-        TargetRenderingMode renderingMode = TargetRenderingMode.Mono;
-
-        string mainTextureName = "_MainTex";
-        string mainTextureLeftEyeName = "_MainTexLeft";
-        string mainTextureRightEyeName = "_MainTexRight";
-
-        public float textureUVOffsetX = 0.0f;
-        public float textureUVOffsetY = 0.0f;
+        public string mainTextureName = "_MainTex";
+        public string isStereoParameterName = "_isStereo";
     }
-
 
     public class Playback : MonoBehaviour
     {
@@ -71,7 +71,7 @@ namespace MediaPlayer
         public event SubtitleItemEnteredHandler SubtitleItemEntered;
         public event SubtitleItemExitedHandler SubtitleItemExited;
 
-        public TargetRenderer[] targetRenderers;
+        public TargetRenderer targetRenderer;
 
         public bool hardware4KDecodingSupported
         {
@@ -97,17 +97,6 @@ namespace MediaPlayer
             }
         }
 
-
-        [Tooltip("Over/Under or Side-by-side frame layouts can be forced even if there is no ST3D metadata in the video.")]
-        public ForcedStereoLayout forcedStereoLayout = ForcedStereoLayout.None;
-
-        public VideoLayout currentVideoLayout
-        {
-            get
-            {
-                return currentVideoFrameLayout;
-            }
-        }
 
         [Tooltip("Recenters the camera when playback starts.")]
         public bool forceStationaryXROnPlayback = true;
@@ -147,6 +136,7 @@ namespace MediaPlayer
 
         private uint textureWidth = 0;
         private uint textureHeight = 0;
+        private Texture2D playbackTexture = null;
 
         private IntPtr pluginInstance = IntPtr.Zero;
         private GCHandle thisObject;
@@ -157,15 +147,11 @@ namespace MediaPlayer
         private PlaybackState currentState = PlaybackState.None;
         private PlaybackState previousState = PlaybackState.None;
 
-        private VideoLayout currentVideoFrameLayout = VideoLayout.Mono;
-
         private Plugin.StateChangedCallback stateCallback = new Plugin.StateChangedCallback(MediaPlayback_Changed);
         private Plugin.SubtitleItemEnteredCallback subtitleEnteredCallback = new Plugin.SubtitleItemEnteredCallback(MediaPlayback_SubtitleItemEntered);
         private Plugin.SubtitleItemExitedCallback subtitleExitedCallback = new Plugin.SubtitleItemExitedCallback(MediaPlayback_SubtitleItemExited);
 
         private bool loaded = false;
-        private bool hasNewSize = false;
-        private bool needMaterialUpdateAfterNewSize = false;
         private Plugin.MEDIA_DESCRIPTION currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
 
         private bool needToGoBackToRoomScale = false;
@@ -293,18 +279,20 @@ namespace MediaPlayer
 
         public void UpdateTexture(uint newTextureWidth, uint newTextureHeight)
         {
-            Texture2D oldTextureLeft = playbackTextureLeft;
-            Texture2D oldTextureRight = playbackTextureRight;
-
-            TextureWidth = newTextureWidth;
-            TextureHeight = newTextureHeight;
+            textureWidth = newTextureWidth;
+            textureHeight = newTextureHeight;
 
             // create native texture for playback
             IntPtr nativeTexture = IntPtr.Zero;
-            CheckHR(Plugin.CreatePlaybackTexture(pluginInstance, this.textureWidth, this.textureHeight, out nativeTexture));
+            byte isStereoscopicByte = 0;
+            CheckHR(Plugin.GetPlaybackTexture(pluginInstance, out nativeTexture, out isStereoscopicByte));
+
+            bool isStereoscopic = isStereoscopicByte > 0 ? true : false;
 
             if (nativeTexture != IntPtr.Zero)
             {
+                var oldTexture = playbackTexture;
+
                 if (playbackTexture == null || playbackTexture.width != (int)this.textureWidth || playbackTexture.height != (int)this.textureHeight)
                 {
                     // create a new Unity texture2d 
@@ -317,16 +305,16 @@ namespace MediaPlayer
                     this.playbackTexture.UpdateExternalTexture(nativeTexture);
                 }
 
-                //// set texture for the shader
-                //if (targetRendererLeft == null && targetRendererRight == null)
-                //    targetRendererRightOrBoth = GetComponent<Renderer>();
-
-                if (targetRendererLeft)
-                    targetRendererLeft.material.mainTexture = this.playbackTextureLeft;
-                if (targetRendererRight)
-                    targetRendererRight.material.mainTexture = this.playbackTextureRight;
-
-                UpdateMaterial();
+                if (targetRenderer != null)
+                {
+                    targetRenderer.targetRenderer.material.SetTexture(targetRenderer.mainTextureName, playbackTexture);
+                    targetRenderer.isStereo = isStereoscopic;
+                    if (!string.IsNullOrEmpty(targetRenderer.isStereoParameterName))
+                    {
+                        bool setStereoscopic = targetRenderer.forceStereo || isStereoscopic;
+                        targetRenderer.targetRenderer.material.SetFloat(targetRenderer.isStereoParameterName, setStereoscopic ? 1.0f : 0.0f);
+                    }
+                }
 
                 if (TextureUpdated != null)
                 {
@@ -344,7 +332,7 @@ namespace MediaPlayer
                         TextureUpdated(this);
                     }
 #else
-                TextureUpdated(this);
+                    TextureUpdated(this);
 #endif
                 }
 
@@ -365,32 +353,6 @@ namespace MediaPlayer
         public void UpdateTexture()
         {
             UpdateTexture(this.textureWidth, this.textureHeight);
-        }
-
-
-        public void UpdateMaterial()
-        {
-            Material matLeft = null;
-            Material matRight = null;
-
-            if (targetRendererLeftOrBoth != null)
-                matLeft = targetRendererLeftOrBoth.material;
-            if (targetRendererRightOrBoth != null)
-                matRight = targetRendererRightOrBoth.material;
-
-            if (matLeft != null)
-            {
-                matLeft.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY));
-            }
-            if (matRight != null)
-            {
-                matRight.SetTextureOffset("_MainTex", new Vector2(textureOffsetX, textureOffsetY));
-            }
-
-            if (autoAdjustMaterial)
-            {
-                needMaterialUpdateAfterNewSize = true;
-            }
         }
 
 
@@ -462,89 +424,6 @@ namespace MediaPlayer
         IEnumerator Start()
         {
             yield return StartCoroutine("CallPluginAtEndOfFrames");
-        }
-
-        private void Update()
-        {
-            if (needMaterialUpdateAfterNewSize)
-            {
-                needMaterialUpdateAfterNewSize = false;
-                Material matLeft = null;
-                Material matRight = null;
-
-                if (targetRendererLeftOrBoth != null)
-                    matLeft = targetRendererLeftOrBoth.material;
-                if (targetRendererRightOrBoth != null)
-                    matRight = targetRendererRightOrBoth.material;
-
-                float videoWidth = GetVideoWidth();
-                float videoHeight = GetVideoHeight();
-
-                if (videoWidth == 0)
-                    return;
-
-                float targetTextureHeigh = textureWidth * videoHeight / videoWidth;
-
-                float ratio = targetTextureHeigh / textureHeight;
-                float ratioDiff = 1.0f - ratio;
-                ratioDiff /= 2;
-
-                var scaleLeft = new Vector2(1, 1);
-                var scaleRight = new Vector2(1, 1);
-
-                var offsetLeft = new Vector2(textureOffsetX, textureOffsetY);
-                var offsetRight = new Vector2(textureOffsetX, textureOffsetY);
-
-                switch (layout)
-                {
-                    case VideoLayout.StereoSideBySide:
-                        scaleLeft = new Vector2(0.5f, -1f * ratio);
-                        scaleRight = new Vector2(0.5f, -1f * ratio);
-
-                        offsetLeft.x *= 0.5f;
-                        offsetRight.x *= 0.5f;
-
-                        offsetLeft.x -= 0.5f;
-
-                        offsetLeft.y *= ratio;
-                        offsetRight.y *= ratio;
-                        offsetLeft.y += -0.5f + ratio/2.0f;
-                        offsetRight.y += -0.5f + ratio/2.0f;
-
-                        break;
-                    case VideoLayout.StereoOverUnder:
-                        scaleLeft = new Vector2(1, -0.5f * ratio);
-                        scaleRight = new Vector2(1, -0.5f * ratio);
-
-                        offsetLeft.y *= ratio;
-                        offsetRight.y *= ratio;
-
-                        offsetLeft.y += -0.5f;
-                        offsetRight.y += -ratioDiff;
-
-                        break;
-                    default:
-                        scaleLeft = new Vector2(1f, -1f * ratio);
-                        scaleRight = new Vector2(1f, -1f * ratio);
-
-                        offsetLeft.y *= ratio;
-                        offsetRight.y *= ratio;
-                        offsetLeft.y += -0.5f + ratio / 2.0f;
-                        offsetRight.y += -0.5f + ratio / 2.0f;
-                        break;
-                }
-                if (matLeft != null)
-                {
-                    matLeft.SetTextureScale("_MainTex", scaleLeft);
-                    matLeft.SetTextureOffset("_MainTex", offsetLeft);
-                }
-                if (matRight != null)
-                {
-                    matRight.SetTextureScale("_MainTex", scaleRight);
-                    matRight.SetTextureOffset("_MainTex", offsetRight);
-                }
-            }
-
         }
 
         private void OnEnable()
@@ -753,13 +632,6 @@ namespace MediaPlayer
                 }
                 catch { }
             }
-            
-            if(hasNewSize)
-            {
-                hasNewSize = false;
-
-                UpdateMaterial();
-            }
         }
 
 
@@ -775,6 +647,16 @@ namespace MediaPlayer
                         currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
                     loaded = false;
                     break;
+
+                case Plugin.StateType.StateType_NewFrameTexture:
+                    currentMediaDescription.duration = args.description.duration;
+                    currentMediaDescription.width = args.description.width;
+                    currentMediaDescription.height = args.description.height;
+                    currentMediaDescription.isSeekable = args.description.isSeekable;
+                    currentMediaDescription.isStereoscopic = args.description.isStereoscopic;
+                    UpdateTexture(currentMediaDescription.width, currentMediaDescription.height);
+                    break;
+
                 case Plugin.StateType.StateType_StateChanged:
                     var newState = (PlaybackState)Enum.ToObject(typeof(PlaybackState), args.state);
                     if (newState == PlaybackState.None)
@@ -798,8 +680,7 @@ namespace MediaPlayer
                         currentMediaDescription.width = args.description.width;
                         currentMediaDescription.height = args.description.height;
                         currentMediaDescription.isSeekable = args.description.isSeekable;
-
-                        hasNewSize = true;
+                        currentMediaDescription.isStereoscopic = args.description.isStereoscopic;
                     }
                     this.State = newState;
                     Debug.Log("Playback State: " + stateType.ToString() + " - " + this.State.ToString());
@@ -809,6 +690,7 @@ namespace MediaPlayer
                     currentMediaDescription.width = args.description.width;
                     currentMediaDescription.height = args.description.height;
                     currentMediaDescription.isSeekable = args.description.isSeekable;
+                    currentMediaDescription.isStereoscopic = args.description.isStereoscopic;
                     Debug.Log("Media Opened: " + args.description.ToString());
                     break;
                 case Plugin.StateType.StateType_Failed:
@@ -821,12 +703,11 @@ namespace MediaPlayer
                     this.State = PlaybackState.None;
                     loaded = false;
                     break;
-                case Plugin.StateType.StateType_DeviceLost:
+                case Plugin.StateType.StateType_GraphicsDeviceShutdown:
                     Debug.LogWarning("Graphics device was lost!");
                     break;
-                case Plugin.StateType.StateType_DeviceRestored:
+                case Plugin.StateType.StateType_GraphicsDeviceReady:
                     Debug.LogWarning("Graphics device was restored! Recreating the playback texture!");
-                    UpdateTexture();
                     break;
                 default:
                     break;
@@ -869,8 +750,9 @@ namespace MediaPlayer
                 StateType_Opened,
                 StateType_StateChanged,
                 StateType_Failed,
-                StateType_DeviceLost,
-                StateType_DeviceRestored
+                StateType_NewFrameTexture,
+                StateType_GraphicsDeviceShutdown,
+                StateType_GraphicsDeviceReady
             };
 
             [StructLayout(LayoutKind.Sequential, Pack = 8)]
@@ -880,6 +762,7 @@ namespace MediaPlayer
                 public UInt32 height;
                 public Int64 duration;
                 public byte isSeekable;
+                public byte isStereoscopic;
 
                 public override string ToString()
                 {
@@ -888,6 +771,7 @@ namespace MediaPlayer
                     sb.AppendLine("height: " + height);
                     sb.AppendLine("duration: " + duration);
                     sb.AppendLine("canSeek: " + isSeekable);
+                    sb.AppendLine("isStereoscopic: " + isStereoscopic);
 
                     return sb.ToString();
                 }
@@ -916,9 +800,6 @@ namespace MediaPlayer
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "ReleaseMediaPlayback")]
             internal static extern void ReleaseMediaPlayback(IntPtr pluginInstance);
 
-            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "CreatePlaybackTexture")]
-            internal static extern long CreatePlaybackTexture(IntPtr pluginInstance, UInt32 width, UInt32 height, out System.IntPtr playbackTexture);
-
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "LoadContent")]
             internal static extern long LoadContent(IntPtr pluginInstance, [MarshalAs(UnmanagedType.LPWStr)] string sourceURL);
 
@@ -930,6 +811,9 @@ namespace MediaPlayer
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "Stop")]
             internal static extern long Stop(IntPtr pluginInstance);
+
+            [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetPlaybackTexture")]
+            internal static extern long GetPlaybackTexture(IntPtr pluginInstance, out IntPtr playbackTexture, out byte isStereoscopic);
 
             [DllImport("MediaPlayback", CallingConvention = CallingConvention.StdCall, EntryPoint = "GetDurationAndPosition")]
             internal static extern long GetDurationAndPosition(IntPtr pluginInstance, ref long duration, ref long position);

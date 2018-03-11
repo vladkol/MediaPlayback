@@ -21,6 +21,7 @@ enum class StateType : UINT32
     StateType_Opened,
     StateType_StateChanged,
     StateType_Failed,
+	StateType_NewFrameTexture,
 	StateType_GraphicsDeviceShutdown,
 	StateType_GraphicsDeviceReady
 };
@@ -32,7 +33,8 @@ enum class PlaybackState : UINT32
     PlaybackState_Buffering,
     PlaybackState_Playing,
     PlaybackState_Paused,
-    PlaybackState_Ended
+    PlaybackState_Ended, 
+	PlaybackState_NA = 255
 };
 
 #pragma pack(push, 8)
@@ -42,6 +44,7 @@ typedef struct _MEDIA_DESCRIPTION
     UINT32 height;
     INT64 duration;
     byte canSeek;
+	byte isStereoscopic;
 } MEDIA_DESCRIPTION;
 #pragma pack(pop)
 
@@ -87,6 +90,7 @@ DECLARE_INTERFACE_IID_(IMediaPlayerPlayback, IUnknown, "9669c78e-42c4-4178-a1e3-
     STDMETHOD(Play)() PURE;
     STDMETHOD(Pause)() PURE;
     STDMETHOD(Stop)() PURE;
+	STDMETHOD(GetPlaybackTexture)(_Out_ IUnknown** d3d11TexturePtr, _Out_ LPBYTE isStereoscopic) PURE;
 	STDMETHOD(GetDurationAndPosition)(_Out_ LONGLONG* duration, _Out_ LONGLONG* position) PURE;
 	STDMETHOD(Seek)(_In_ LONGLONG position) PURE;
 	STDMETHOD(SetVolume)(_In_ DOUBLE volume) PURE;
@@ -129,6 +133,8 @@ public:
     IFACEMETHOD(Play)();
     IFACEMETHOD(Pause)();
     IFACEMETHOD(Stop)();
+
+	IFACEMETHOD(GetPlaybackTexture)(_Out_ IUnknown** d3d11TexturePtr, _Out_ LPBYTE isStereoscopic);
 
 	IFACEMETHOD(GetDurationAndPosition)(_Out_ LONGLONG* duration, _Out_ LONGLONG* position);
 	IFACEMETHOD(Seek)(_In_ LONGLONG position);
@@ -176,17 +182,13 @@ protected:
 	HRESULT OnCueExited(ABI::Windows::Media::Core::ITimedMetadataTrack* pTrack, ABI::Windows::Media::Core::IMediaCueEventArgs* pArgs);
 
 private:
-	HRESULT CreatePlaybackTexture(
-		_In_ UINT32 width,
-		_In_ UINT32 height,
-		_COM_Outptr_ void** ppvTexture);
+	HRESULT CreatePlaybackTextures();
 
     HRESULT CreateMediaPlayer();
     void ReleaseMediaPlayer();
 
 	HRESULT InitializeDevices();
 
-    HRESULT CreateTextures();
     void ReleaseTextures();
 
     HRESULT AddStateChanged();
@@ -195,7 +197,7 @@ private:
     void ReleaseResources();
 
 	void DeviceShutdown();
-	void DeviceReady(IUnityGraphicsD3D11* unityD3D);
+	HRESULT DeviceReady(IUnityGraphicsD3D11* unityD3D);
 
 private:
 	IUnityGraphicsD3D11*				 m_pUnityGraphics;
@@ -239,9 +241,16 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_primaryTexture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_primaryTextureSRV;
 
+
     HANDLE m_primarySharedHandle;
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_primaryMediaTexture;
     Microsoft::WRL::ComPtr<ABI::Windows::Graphics::DirectX::Direct3D11::IDirect3DSurface> m_primaryMediaSurface;
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_leftEyeMediaTexture;
+	Microsoft::WRL::ComPtr<ABI::Windows::Graphics::DirectX::Direct3D11::IDirect3DSurface> m_leftEyeMediaSurface;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_rightEyeMediaTexture;
+	Microsoft::WRL::ComPtr<ABI::Windows::Graphics::DirectX::Direct3D11::IDirect3DSurface> m_rightEyeMediaSurface;
+
 
 	std::vector<SUBTITLE_TRACK> m_subtitleTracks;
 
