@@ -7,6 +7,7 @@ It gives you access to a broad range of media playback features:
 * Regular and 360 videos, stereoscopic (3D) and monoscopic   
 * All formats, codecs and media containers [supported by Windows 10](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/supported-codecs#video-codec--format-support) 
 * Subtitles 
+* Ambisonic Audio 
 
 ## New in this version (1.5 alpha): 
 * The texture pipeline has been redesigned for supporting Stereoscopic videos with correspondding metadata 
@@ -40,6 +41,22 @@ If built successfully, **MediaPlayback\Unity\MediaPlayback\** should have all Un
 
 360VideoShader is based on Unity's [SkyboxPanoramicShader](https://github.com/Unity-Technologies/SkyboxPanoramicShader). 
 360VideoShader currently doesn't support 180-degree videos. 
+
+If you want to render to Skybox, handle TextureUpdated event on Playback object: 
+``` csharp
+		// subscribe to TextureUpdated 
+        var player = GetComponent<MediaPlayer.Playback>();
+        player.TextureUpdated += Player_TextureUpdated;
+
+	    private void Player_TextureUpdated(object sender, Texture2D newVideoTexture, bool isStereoscopic)
+		{
+			Material skyboxMaterial = RenderSettings.skybox;
+
+			// Update your skybox here! 
+			// if isStereoscopic is true, assume over/under frame layout 
+			// You may need to call DynamicGI.UpdateEnvironment() after that (https://docs.unity3d.com/ScriptReference/RenderSettings-skybox.html)
+		}
+```
 
 When rendering stereoscopic videos, the native plugin forces over/under frame layout, so the video texture always comes to the shader as over/under frame. 
 In your custom shaders, if you want to handle 180-degree videos or single-frame cubemaps, they all usually have no corresponding metadata, and must be handled in the shader based on the custom medatada. 

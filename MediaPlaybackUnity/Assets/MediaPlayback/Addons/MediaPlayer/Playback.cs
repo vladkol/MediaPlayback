@@ -61,7 +61,7 @@ namespace MediaPlayer
         // state handling
         public delegate void PlaybackStateChangedHandler(object sender, ChangedEventArgs<PlaybackState> args);
         public delegate void PlaybackFailedHandler (object sender, long hresult);
-        public delegate void TextureUpdatedHandler(object sender);
+        public delegate void TextureUpdatedHandler(object sender, Texture2D newVideoTexture, bool isStereoscopic);
         public delegate void SubtitleItemEnteredHandler(object sender, string subtitlesTrackId, string textCueId, string language, string[] textLines);
         public delegate void SubtitleItemExitedHandler(object sender, string subtitlesTrackId, string textCueId);
 
@@ -108,6 +108,13 @@ namespace MediaPlayer
             }
         }
 
+        public Texture2D currentVideoTexture
+        {
+            get
+            {
+                return playbackTexture;
+            }
+        }
 
         [Tooltip("Recenters the camera when playback starts.")]
         public bool forceStationaryXROnPlayback = true;
@@ -303,6 +310,8 @@ namespace MediaPlayer
 
             bool isStereoscopic = isStereoscopicByte > 0 ? true : false;
 
+            isStereoVideo = forceStereo || isStereoscopic;
+
             if (nativeTexture != IntPtr.Zero)
             {
                 var oldTexture = playbackTexture;
@@ -319,36 +328,30 @@ namespace MediaPlayer
                     this.playbackTexture.UpdateExternalTexture(nativeTexture);
                 }
 
+                Material targetMaterial = null;
                 if (targetRenderer != null)
                 {
-                    targetRenderer.material.SetTexture(targetRendererTextureName, playbackTexture);
-                    isStereoVideo = isStereoscopic;
-                    if (!string.IsNullOrEmpty(isStereoShaderParameterName))
-                    {
-                        bool setStereoscopic = forceStereo || isStereoscopic;
-                        targetRenderer.material.SetFloat(isStereoShaderParameterName, setStereoscopic ? 1.0f : 0.0f);
-                    }
+                    targetMaterial = targetRenderer.material;
                 }
 
-                if (TextureUpdated != null)
+                if (targetMaterial != null)
                 {
-
-#if UNITY_WSA_10_0
-                    if (!UnityEngine.WSA.Application.RunningOnAppThread())
+                    if (!string.IsNullOrEmpty(targetRendererTextureName))
                     {
-                        UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-                        {
-                            TextureUpdated(this);
-                        }, true);
+                        targetMaterial.SetTexture(targetRendererTextureName, playbackTexture);
                     }
                     else
                     {
-                        TextureUpdated(this);
+                        targetMaterial.mainTexture = playbackTexture;
                     }
-#else
-                    TextureUpdated(this);
-#endif
+                    
+                    if (!string.IsNullOrEmpty(isStereoShaderParameterName))
+                    {
+                        targetMaterial.SetFloat(isStereoShaderParameterName, isStereoVideo ? 1.0f : 0.0f);
+                    }
                 }
+
+                SendTextureUpdated();
 
                 if (oldTexture != null)
                 {
@@ -441,6 +444,30 @@ namespace MediaPlayer
             {
                 needToUpdateTexture = false;
                 UpdateTexture(currentMediaDescription.width, currentMediaDescription.height);
+            }
+        }
+
+
+        private void SendTextureUpdated()
+        {
+            if (TextureUpdated != null)
+            {
+
+#if UNITY_WSA_10_0
+                if (!UnityEngine.WSA.Application.RunningOnAppThread())
+                {
+                    UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+                    {
+                        TextureUpdated(this, playbackTexture, isStereo);
+                    }, true);
+                }
+                else
+                {
+                    TextureUpdated(this, playbackTexture, isStereo);
+                }
+#else
+                TextureUpdated(this, playbackTexture, isStereo);
+#endif
             }
         }
 
