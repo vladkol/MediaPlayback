@@ -44,18 +44,18 @@ If built successfully, **MediaPlayback\Unity\MediaPlayback\** should have all Un
 
 If you want to render to Skybox, handle TextureUpdated event on Playback object: 
 ``` csharp
-		// subscribe to TextureUpdated 
+	// subscribe to TextureUpdated 
         var player = GetComponent<MediaPlayer.Playback>();
         player.TextureUpdated += Player_TextureUpdated;
 
-	    private void Player_TextureUpdated(object sender, Texture2D newVideoTexture, bool isStereoscopic)
-		{
-			Material skyboxMaterial = RenderSettings.skybox;
+	private void Player_TextureUpdated(object sender, Texture2D newVideoTexture, bool isStereoscopic)
+	{
+		Material skyboxMaterial = RenderSettings.skybox;
 
-			// Update your skybox here! 
-			// if isStereoscopic is true, assume over/under frame layout 
-			// You may need to call DynamicGI.UpdateEnvironment() after that (https://docs.unity3d.com/ScriptReference/RenderSettings-skybox.html)
-		}
+		// Update your skybox here! 
+		// if isStereoscopic is true, assume over/under frame layout 
+		// You may need to call DynamicGI.UpdateEnvironment() after that (https://docs.unity3d.com/ScriptReference/RenderSettings-skybox.html)
+	}
 ```
 
 When rendering stereoscopic videos, the native plugin forces over/under frame layout, so the video texture always comes to the shader as over/under frame. 
