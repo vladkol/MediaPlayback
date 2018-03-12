@@ -1,4 +1,4 @@
- # Windows 10 Media Playback for Unity 1.5
+ # Windows 10 Media Playback for Unity 1.5 (alpha)
 
 Media Playback plugin for [Unity](https://unity3d.com/) on Windows 10 Fall Creators Update and beyond. 
 
@@ -8,7 +8,7 @@ It gives you access to a broad range of media playback features:
 * All formats, codecs and media containers [supported by Windows 10](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/supported-codecs#video-codec--format-support) 
 * Subtitles 
 
-## New in this version (1.5): 
+## New in this version (1.5 alpha): 
 * The texture pipeline has been redesigned for supporting Stereoscopic videos with correspondding metadata 
 * New 360VideoShader for rendiring monoscopic and stereoscopic videos in stereoscopic mode on a single mesh for both eyes in Mixed Reality  
 * Ambisonic audio support on Windows 10 "RS4" 
