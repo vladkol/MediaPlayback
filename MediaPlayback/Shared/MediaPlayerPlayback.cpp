@@ -128,7 +128,9 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
 	, m_noHW4KDecoding(false)
 	, m_make1080MaxWhenNoHWDecoding(true) 
 	, m_releasing(false)
+	, m_firstInitializationDone(false)
 {
+	ZeroMemory(&m_textureDesc, sizeof(m_textureDesc));
 }
 
 _Use_decl_annotations_
@@ -170,6 +172,8 @@ HRESULT CMediaPlayerPlayback::RuntimeClassInitialize(
 
 	// only initialize callback here so DeviceReady doensn't fire an event before we returned back to the client side. 
 	m_fnStateCallback = fnCallback;
+
+	m_firstInitializationDone = true;
 
 	return hr;
 }
@@ -596,10 +600,11 @@ HRESULT CMediaPlayerPlayback::GetPlaybackTexture(IUnknown** d3d11TexturePtr, LPB
 	if (!d3d11TexturePtr || !isStereoscopic)
 		return E_INVALIDARG;
 
-	if (!m_primaryMediaTexture || !m_mediaPlayer3)
+	if (!m_primaryTextureSRV || !m_mediaPlayer3)
 		return E_ILLEGAL_METHOD_CALL;
 
-	*d3d11TexturePtr = m_primaryMediaTexture.Get();
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> resTexture = m_primaryTextureSRV;
+	*d3d11TexturePtr = resTexture.Detach();
 
 	StereoscopicVideoRenderMode renderMode = StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Mono;
 	m_mediaPlayer3->get_StereoscopicVideoRenderMode(&renderMode);
@@ -1020,13 +1025,16 @@ HRESULT CMediaPlayerPlayback::DeviceReady(IUnityGraphicsD3D11* unityD3D)
 	playbackState.type = StateType::StateType_GraphicsDeviceReady;
 	playbackState.state = PlaybackState::PlaybackState_None;
 
-	try
+	if (m_firstInitializationDone)
 	{
-		if (m_fnStateCallback != nullptr)
-			m_fnStateCallback(m_pClientObject, playbackState);
-	}
-	catch (...)
-	{
+		try
+		{
+			if (m_fnStateCallback != nullptr)
+				m_fnStateCallback(m_pClientObject, playbackState);
+		}
+		catch (...)
+		{
+		}
 	}
 
 	if (m_textureDesc.Width && m_textureDesc.Height)
@@ -1094,8 +1102,14 @@ HRESULT CMediaPlayerPlayback::OnOpened(
     ComPtr<IMediaPlayer3> spMediaPlayer3;
     IFR(spMediaPlayer.As(&spMediaPlayer3));
 
-    ComPtr<IMediaPlaybackSession> spSession;
-    IFR(spMediaPlayer3->get_PlaybackSession(&spSession));
+    ComPtr<IMediaPlaybackSession> spSession = m_mediaPlaybackSession;
+	
+	MediaProperties::StereoscopicVideoPackingMode packingMode = MediaProperties::StereoscopicVideoPackingMode_None;
+	spSession->get_StereoscopicVideoPackingMode(&packingMode);
+	if (packingMode != MediaProperties::StereoscopicVideoPackingMode_None)
+	{
+		m_mediaPlayer3->put_StereoscopicVideoRenderMode(StereoscopicVideoRenderMode::StereoscopicVideoRenderMode_Stereo);
+	}
 
     // width & height of video
     UINT32 width = 0;

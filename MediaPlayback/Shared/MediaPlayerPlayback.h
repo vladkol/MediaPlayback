@@ -227,8 +227,7 @@ private:
 	EventRegistrationToken m_timedMetadataChangedEventToken;
 
 	bool m_bIgnoreEvents;
-	Microsoft::WRL::Wrappers::HString m_currentLicenseServiceURL;
-	Microsoft::WRL::Wrappers::HString m_currentLicenseCustomChallendge;
+	bool m_firstInitializationDone;
 
 	Microsoft::WRL::ComPtr<ABI::Windows::Media::Streaming::Adaptive::IAdaptiveMediaSource> m_spAdaptiveMediaSource;
 	Microsoft::WRL::ComPtr<ABI::Windows::Media::Playback::IMediaPlaybackItem> m_spPlaybackItem;
