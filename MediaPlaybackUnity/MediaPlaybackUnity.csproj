@@ -228,17 +228,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Input\GazeBasicInputModule.cs" />
-    <Compile Include="Assets\Input\MouseLook.cs" />
-    <Compile Include="Assets\Input\XROnly.cs" />
-    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\MediaItemsUI.cs" />
-    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\MediaPlaybackRunner.cs" />
-    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\Playback.cs" />
-    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\PlayerSubtitles.cs" />
-    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\PlayerTime.cs" />
-    <Compile Include="Assets\MediaPlayback\Addons\MediaPlayer\VideoAspectHandler.cs" />
-    <Compile Include="Assets\MediaPlayback\Scenes\UWPTest\VideoLibraryTest.cs" />
-    <Compile Include="Assets\SkyboxDemo\Scripts\MediaSkybox.cs" />
+    <Compile Include="Assets\MediaPlayback\Scripts\MediaPlayer\MediaPlaybackRunner.cs" />
+    <Compile Include="Assets\MediaPlayback\Scripts\MediaPlayer\MediaSkybox.cs" />
+    <Compile Include="Assets\MediaPlayback\Scripts\MediaPlayer\Playback.cs" />
+    <Compile Include="Assets\MediaPlayback\Scripts\MediaPlayer\PlayerSubtitles.cs" />
+    <Compile Include="Assets\MediaPlayback\Scripts\MediaPlayer\PlayerTime.cs" />
+    <Compile Include="Assets\MediaPlayback\Scripts\MediaPlayer\VideoAspectHandler.cs" />
+    <Compile Include="Assets\Scenes\UWPTest\VideoLibraryTest.cs" />
+    <Compile Include="Assets\Scripts\Input\GazeBasicInputModule.cs" />
+    <Compile Include="Assets\Scripts\Input\MouseLook.cs" />
+    <Compile Include="Assets\Scripts\Input\XROnly.cs" />
+    <Compile Include="Assets\Scripts\UI\MediaItemsUI.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\MediaPlayback\Shaders\360VideoShader.shader" />

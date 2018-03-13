@@ -86,17 +86,12 @@ Shader "360 Video/360 XR Skybox"
 				
 				if (_isStereo > 0)
 				{
-					layout3DScaleAndOffset = float4(0.25, 1 - unity_StereoEyeIndex,1,0.5);
+					layout3DScaleAndOffset = float4(0.25, unity_StereoEyeIndex,1,0.5);
 				}
 
 				float2 tc = ToRadialCoords(i.texcoord);
 				tc.x = fmod(tc.x, 1);
 				tc = (tc + layout3DScaleAndOffset.xy) * layout3DScaleAndOffset.zw;
-
-				if (_isStereo > 0)
-				{
-					//tc.y = 0.5 - tc.y;
-				}
 
 				half4 texHDR = _MainTex_HDR;
 				half4 texCol = tex2D(_MainTex, tc);
