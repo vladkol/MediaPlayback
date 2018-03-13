@@ -11,7 +11,8 @@ It gives you access to a broad range of media playback features:
 
 ## New in this version (1.5 alpha): 
 * The texture pipeline has been redesigned for supporting Stereoscopic videos with correspondding metadata 
-* New 360VideoShader for rendiring monoscopic and stereoscopic videos in stereoscopic mode on a single mesh for both eyes in Mixed Reality  
+* New 360VideoShader (360 Video/360 XR Stereo Panorama) for rendiring monoscopic and stereoscopic videos in stereoscopic mode on a single mesh for both eyes in Mixed Reality  
+* Skybox rendering support, including new stereoscopic 360VideoSkyboxShader for Skybox (360 Video/360 XR Skybox)
 * Ambisonic audio support on Windows 10 "RS4" 
 
 The plugin is built on top of [MediaPlayer](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer) Universal Windows Platform API. 
@@ -19,7 +20,7 @@ Primarily targeting [Windows Mixed Reality](https://developer.microsoft.com/en-u
   
 MediaPlaybackUnity is a Unity project covering 3 key scenarios: 
 * Regular video playback with Adaptive Streaming, MediaPlayback.unity scene.  
-* 360 video playback (mono), MediaPlayback360.unity scene. 
+* 360 video playback (stereo/mono), MediaPlayback360.unity scene. 
 The demo project already has all plugin binaries prebuilt.  
 
 Supported Unity versions: 
@@ -54,9 +55,11 @@ private void Player_TextureUpdated(object sender, Texture2D newVideoTexture, boo
 
 	// Update your skybox here! 
 	// if isStereoscopic is true, assume over/under frame layout 
-	// You may need to call DynamicGI.UpdateEnvironment() after that (https://docs.unity3d.com/ScriptReference/RenderSettings-skybox.html)
+	// You may want to call DynamicGI.UpdateEnvironment() after that (https://docs.unity3d.com/ScriptReference/RenderSettings-skybox.html)
 }
 ```
+There is a sample scene for Skybox rendering, in MediaPlaybackUnity/Assets/SkyboxDemo/Scenes. 
+The video texture is Y-flipped, make sure you handle it in the shader. 
 
 When rendering stereoscopic videos, the native plugin forces over/under frame layout, so the video texture always comes to the shader as over/under frame. 
 In your custom shaders, if you want to handle 180-degree videos or single-frame cubemaps, they all usually have no corresponding metadata, and must be handled in the shader based on the custom medatada. 
