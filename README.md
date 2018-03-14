@@ -38,12 +38,12 @@ Supported Unity versions:
 * Renderer targetRenderer - Renderer component to the object the frame will be rendered to. If null (none), other paramaters are ignored - you are expected to handle texture changes in TextureUpdated event handler. 
 * string targetRendererTextureName - Texture to update on the Target Renderer (must be material's shader variable name). If empty, and targetRenderer is not null, mainTexture will be updated 
 * string isStereoShaderParameterName - If material's shader has a variable that handles stereoscopic vs monoscopic video, put its name here (must be a float, 0 - monoscopic, 1 - stereoscopic). 
-* public bool forceStereo - If true, the material's shader will be forced to render frames as stereoscopic (assuming isStereoShaderParameterName is not empty) 
-* forceStationaryXROnPlayback - switches to XR Stationary tracking mode, and resets the rotation when starts playing a video. Once playback stops, switches back to RoomScale if that mode was active before the playback 
+* bool forceStereo - If true, the material's shader will be forced to render frames as stereoscopic (assuming isStereoShaderParameterName is not empty) 
+* bool forceStationaryXROnPlayback - if true, switches to XR Stationary tracking mode, and resets the rotation when starts playing a video. Once playback stops, switches back to RoomScale if that mode was active before the playback 
 
 ### Runtime properties 
 * bool isStereo - true if current video is detected as stereoscopic by its metadata (ST3D box). **forceStereo doesn't affect this property** 
-* hardware4KDecodingSupported - true if hardware video decoding is supported for resolutions 4K and higher 
+* bool hardware4KDecodingSupported - true if hardware video decoding is supported for resolutions 4K and higher 
 * uint currentPlaybackTextureWidth / currentPlaybackTextureHeight - current frame resolution 
 * Texture2D currentVideoTexture - current video texture 
 * PlaybackState State - current playback state 
