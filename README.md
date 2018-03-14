@@ -16,6 +16,36 @@ It gives you access to a broad range of media playback features:
 * Skybox rendering support, including new stereoscopic 360VideoSkyboxShader for Skybox (360 Video/360 XR Skybox)
 * Ambisonic audio support on Windows 10 "RS4" 
 
+## Breaking Changes 
+* The plugin now recreates the playback texture every time frame resolution changes. We added TextureUpdated event for you to handle these changes. 
+* Playback component doesn't adjust material's shader parameters related to the frame layout and aspecy ratio automatically. It's not supposed to be handled in shaders. 
+* The plugin now detects sterescopic videos based on the metadata (ST3D box). Once detected, we render all frames to the video texture in over/under layout. 
+
+## Updated properties 
+* Renderer targetRenderer - Renderer component to the object the frame will be rendered to. If null (none), other paramaters are ignored - you are expected to handle texture changes in TextureUpdated event handler. 
+* string targetRendererTextureName - Texture to update on the Target Renderer (must be material's shader variable name). If empty, and targetRenderer is not null, mainTexture will be updated 
+* string isStereoShaderParameterName - If material's shader has a variable that handles stereoscopic vs monoscopic video, put its name here (must be a float, 0 - monoscopic, 1 - stereoscopic). 
+* public bool forceStereo - If true, the material's shader will be forced to render frames as stereoscopic (assuming isStereoShaderParameterName is not empty) 
+
+
+**Runtime properties**
+
+* bool isStereo - true if current video is detected as stereoscopic by its metadata (ST3D box). **forceStereo doesn't affect this property** 
+* hardware4KDecodingSupported - true if hardware video decoding is supported for resolutions 4K and higher 
+* uint currentPlaybackTextureWidth / currentPlaybackTextureHeight - current frame resolution 
+* Texture2D currentVideoTexture - current video texture 
+* forceStationaryXROnPlayback - resets the rotation when starts playing a video 
+* PlaybackState State - current playback state 
+
+**Events** 
+
+* TextureUpdated (object sender, Texture2D newVideoTexture, bool isStereoscopic) - video texture has been updated. isStereoscopic is true if either the video is stereoscopic by its metadata, **or forceStreo is true** 
+* PlaybackStateChanged (object sender, ChangedEventArgs<PlaybackState> args) - playback state has been changed 
+* PlaybackFailed (object sender, long hresult) - playback faled 
+* SubtitleItemEntered (object sender, string subtitlesTrackId, string textCueId, string language, string[] textLines) - text subtitle cue entered (must be shown) 
+* SubtitleItemExited (object sender, string subtitlesTrackId, string textCueId) - text subtitle cue exited (must be hidden) 
+
+
 The plugin is built on top of [MediaPlayer](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer) Universal Windows Platform API. 
 Primarily targeting [Windows Mixed Reality](https://developer.microsoft.com/en-us/windows/mixed-reality/mixed_reality), it also supports Windows Standalone (desktop) apps built with Unity. 
   
@@ -35,6 +65,7 @@ Supported Unity versions:
 2. Look how MediaPlayback.unity and MediaPlayback360.unity are structured. If you just want to play a video in your scene, use Playback and MediaPlaybackRunner components. 
 
 ## How to build
+Unity project already has all plugin binaries prebuilt. 
 For building the plugin, use [Visual Studio 2017](https://www.visualstudio.com/downloads/) with Windows Desktop, Universal Windows Platform and C++ toolsets installed. It also requires [Windows 10 Fall Creators update SDK](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk).
 
 * Open **MediaPlayback/MediaPlayback.sln** 

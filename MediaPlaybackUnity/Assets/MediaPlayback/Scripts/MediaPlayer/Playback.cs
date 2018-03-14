@@ -40,21 +40,6 @@ namespace MediaPlayer
         }
     }
 
-    public enum TargetRenderingMode
-    {
-        Mono = 0, 
-        Stereo,
-    }
-
-    public class TargetRenderer
-    {
-        public Renderer targetRenderer;
-        public bool isStereo = false;
-        public bool forceStereo = false;
-
-        public string mainTextureName = "_MainTex";
-        public string isStereoParameterName = "_isStereo";
-    }
 
     public class Playback : MonoBehaviour
     {
@@ -71,9 +56,16 @@ namespace MediaPlayer
         public event SubtitleItemEnteredHandler SubtitleItemEntered;
         public event SubtitleItemExitedHandler SubtitleItemExited;
 
+        [Tooltip("Renderer component to the object the frame will be rendered to")]
         public Renderer targetRenderer;
+
+        [Tooltip("Texture to update on the Target Renderer (must be material's shader variable name)")]
         public string targetRendererTextureName = "_MainTex";
+
+        [Tooltip("If material's shader has a variable that handles stereoscopic vs monoscopic video, put its name here (must be a float, 0 - monoscopic, 1 - stereoscopic)")]
         public string isStereoShaderParameterName = "_isStereo";
+
+        [Tooltip("If true, the material's shader will be forced to render frames as stereoscopic")]
         public bool forceStereo = false;
 
         public bool isStereo
@@ -310,7 +302,8 @@ namespace MediaPlayer
 
             bool isStereoscopic = isStereoscopicByte > 0 ? true : false;
 
-            isStereoVideo = forceStereo || isStereoscopic;
+            isStereoVideo = isStereoscopic;
+            bool makeStereo = forceStereo || isStereoVideo;
 
             if (nativeTexture != IntPtr.Zero)
             {
@@ -347,7 +340,7 @@ namespace MediaPlayer
                     
                     if (!string.IsNullOrEmpty(isStereoShaderParameterName))
                     {
-                        targetMaterial.SetFloat(isStereoShaderParameterName, isStereoVideo ? 1.0f : 0.0f);
+                        targetMaterial.SetFloat(isStereoShaderParameterName, makeStereo ? 1.0f : 0.0f);
                     }
                 }
 
@@ -458,15 +451,15 @@ namespace MediaPlayer
                 {
                     UnityEngine.WSA.Application.InvokeOnAppThread(() =>
                     {
-                        TextureUpdated(this, playbackTexture, isStereo);
+                        TextureUpdated(this, playbackTexture, forceStereo || isStereoVideo);
                     }, true);
                 }
                 else
                 {
-                    TextureUpdated(this, playbackTexture, isStereo);
+                    TextureUpdated(this, playbackTexture, forceStereo || isStereoVideo);
                 }
 #else
-                TextureUpdated(this, playbackTexture, isStereo);
+                TextureUpdated(this, playbackTexture, forceStereo || isStereoVideo);
 #endif
             }
         }
