@@ -74,13 +74,6 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API ReleaseMediaPlayback(
     }
 }
 
-extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API CreatePlaybackTexture(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ UINT32 width, _In_ UINT32 height, _COM_Outptr_ void** ppvTexture)
-{
-    NULL_CHK(ppvTexture);
-    NULL_CHK(spMediaPlayback);
-
-    return spMediaPlayback->CreatePlaybackTexture(width, height, ppvTexture);
-}
 
 extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API LoadContent(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ LPCWSTR pszContentLocation)
 {
@@ -111,6 +104,15 @@ extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API Stop(_In_ IMediaPl
     return spMediaPlayback->Stop();
 }
 
+
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetPlaybackTexture(_In_ IMediaPlayerPlayback* spMediaPlayback, _Out_ IUnknown** d3d11TexturePtr, _Out_ LPBYTE isStereoscopic)
+{
+	NULL_CHK(spMediaPlayback);
+
+	return spMediaPlayback->GetPlaybackTexture(d3d11TexturePtr, isStereoscopic);
+}
+
+
 extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetDurationAndPosition(_In_ IMediaPlayerPlayback* spMediaPlayback, _Out_ LONGLONG* duration, _Out_ LONGLONG* position)
 {
 	NULL_CHK(spMediaPlayback);
@@ -139,27 +141,11 @@ extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetMediaPlayer(_In
 	return spMediaPlayback->GetIUnknown(pIUnkForMediaPlayer);
 }
 
-extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API IsHWDecodingSupported(_In_ IMediaPlayerPlayback* spMediaPlayback, _Out_ BOOL* pSupportsHWVideoDecoding)
+extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API IsHardware4KDecodingSupported(_In_ IMediaPlayerPlayback* spMediaPlayback, _Out_ BOOL* pSupportsHardware4KVideoDecoding)
 {
 	NULL_CHK(spMediaPlayback);
 
-	return spMediaPlayback->IsHWDecodingSupported(pSupportsHWVideoDecoding);
-}
-
-
-extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API SetDRMLicense(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ LPCWSTR pszLicenseServiceURL, _In_ LPCWSTR pszCustomChallendgeData)
-{
-	NULL_CHK(spMediaPlayback);
-
-	return spMediaPlayback->SetDRMLicense(pszLicenseServiceURL, pszCustomChallendgeData);
-}
-
-
-extern "C" HRESULT UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API SetDRMLicenseCallback(_In_ IMediaPlayerPlayback* spMediaPlayback, _In_ DRMLicenseRequestedCallback fnCallback)
-{
-	NULL_CHK(spMediaPlayback);
-
-	return spMediaPlayback->SetDRMLicenseCallback(fnCallback);
+	return spMediaPlayback->IsHardware4KDecodingSupported(pSupportsHardware4KVideoDecoding);
 }
 
 
@@ -203,14 +189,15 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
     if (eventType == kUnityGfxDeviceEventInitialize)
     {
         s_DeviceType = s_Graphics->GetRenderer();
-		CMediaPlayerPlayback::ReportDeviceReady();
+		s_Graphics = s_UnityInterfaces->Get<IUnityGraphics>();
+		CMediaPlayerPlayback::GraphicsDeviceReady(s_UnityInterfaces);
     }
 
     // Cleanup graphics API implementation upon shutdown
     if (eventType == kUnityGfxDeviceEventShutdown)
     {
         s_DeviceType = kUnityGfxRenderernullptr;
-		CMediaPlayerPlayback::ReportDeviceLost();
+		CMediaPlayerPlayback::GraphicsDeviceShutdown();
     }
 }
 
