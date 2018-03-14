@@ -261,6 +261,7 @@ namespace MediaPlayer
             currentMediaDescription = new Plugin.MEDIA_DESCRIPTION();
             State = PlaybackState.None;
             currentItem = string.Empty;
+            isStereoVideo = false;
 
             if (needToGoBackToRoomScale)
             {
@@ -288,6 +289,9 @@ namespace MediaPlayer
                 }
                 catch { }
             }
+
+            textureWidth = 0;
+            textureHeight = 0;
         }
 
         public void UpdateTexture(uint newTextureWidth, uint newTextureHeight)
