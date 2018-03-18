@@ -4,10 +4,10 @@ Media Playback plugin for [Unity](https://unity3d.com/) on Windows 10 Fall Creat
 
 It gives you access to a broad range of media playback features: 
 * Local files, progressive and Adaptive Streaming (HLS, DASH) playback 
-* Regular and 360 videos, [stereoscopic (3D)](https://github.com/vladkol/MediaPlayback/blob/master/README.md#L71) and monoscopic   
+* Regular and 360 videos, [stereoscopic (3D)](https://github.com/vladkol/MediaPlayback#rendering-stereoscopic-videos) and monoscopic   
 * All formats, codecs and media containers [supported by Windows 10](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/supported-codecs#video-codec--format-support) 
 * Subtitles 
-* Ambisonic Audio ([see below](https://github.com/vladkol/MediaPlayback/blob/master/README.md#L85))
+* Ambisonic Audio ([see below](https://github.com/vladkol/MediaPlayback/blob/master/README.md#ambisonic-audio))
 
 The plugin is built on top of [MediaPlayer](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer) Universal Windows Platform API. 
 Primarily targeting [Windows Mixed Reality](https://developer.microsoft.com/en-us/windows/mixed-reality/mixed_reality), it also supports Windows Standalone (desktop) apps built with Unity. 
