@@ -51,7 +51,7 @@ Supported Unity versions:
 ### Events 
 * TextureUpdated (object sender, Texture2D newVideoTexture, bool isStereoscopic) - video texture has been updated. isStereoscopic is true if either the video is stereoscopic by its metadata, **or forceStreo is true** 
 * PlaybackStateChanged (object sender, ChangedEventArgs<PlaybackState> args) - playback state has been changed 
-* PlaybackFailed (object sender, long hresult) - playback faled 
+* PlaybackFailed (object sender, long hresult) - playback failed 
 * SubtitleItemEntered (object sender, string subtitlesTrackId, string textCueId, string language, string[] textLines) - text subtitle cue entered (must be shown) 
 * SubtitleItemExited (object sender, string subtitlesTrackId, string textCueId) - text subtitle cue exited (must be hidden) 
 
