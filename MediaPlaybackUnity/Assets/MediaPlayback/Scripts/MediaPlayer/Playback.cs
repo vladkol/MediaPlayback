@@ -137,7 +137,10 @@ namespace MediaPlayer
                         TriggerPlaybackStateChangedEvent(args);
                     }
 #else
-                    TriggerPlaybackStateChangedEvent(args);
+                    UnityThreadRunner.CallOnUpdate(() =>
+                    {
+                        TriggerPlaybackStateChangedEvent(args);
+                    }, false);
 #endif
                 }
             }
@@ -463,7 +466,10 @@ namespace MediaPlayer
                     TextureUpdated(this, playbackTexture, forceStereo || isStereoVideo);
                 }
 #else
-                TextureUpdated(this, playbackTexture, forceStereo || isStereoVideo);
+                UnityThreadRunner.CallOnUpdate(() =>
+                {
+                    TextureUpdated(this, playbackTexture, forceStereo || isStereoVideo);
+                }, true);
 #endif
             }
         }
@@ -551,7 +557,10 @@ namespace MediaPlayer
                 thisObject.OnStateChanged(args);
             }
 #else
-            thisObject.OnStateChanged(args);
+            UnityThreadRunner.CallOnUpdate(() =>
+            {
+                thisObject.OnStateChanged(args);
+            }, false);
 #endif
         }
 
@@ -601,7 +610,10 @@ namespace MediaPlayer
                 thisObject.OnSubtitleItemEntered(subtitleTrackId, textCueId, language, textLines);
             }
 #else
-            thisObject.OnSubtitleItemEntered(subtitleTrackId, textCueId, language, textLines);
+            UnityThreadRunner.CallOnUpdate(() =>
+            {
+                thisObject.OnSubtitleItemEntered(subtitleTrackId, textCueId, language, textLines);
+            }, true);
 #endif
         }
 
@@ -639,7 +651,10 @@ namespace MediaPlayer
                 thisObject.OnSubtitleItemExited(trackId, cueId);
             }
 #else
-            thisObject.OnSubtitleItemExited(trackId, cueId);
+            UnityThreadRunner.CallOnUpdate(() =>
+            {
+                thisObject.OnSubtitleItemExited(trackId, cueId);
+            }, true);
 #endif
         }
 
