@@ -38,4 +38,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)Unity\IUnityInterface.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Unity\PlatformBase.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Plugin.def" />
+  </ItemGroup>
 </Project>
