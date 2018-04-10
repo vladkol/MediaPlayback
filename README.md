@@ -29,7 +29,7 @@ Supported Unity versions:
 * The texture pipeline has been redesigned for supporting Stereoscopic videos with correspondding metadata 
 * New 360VideoShader (360 Video/360 XR Stereo Panorama) for rendiring monoscopic and stereoscopic videos in stereoscopic mode on a single mesh for both eyes in Mixed Reality  
 * Skybox rendering support, including new stereoscopic 360VideoSkyboxShader for Skybox (360 Video/360 XR Skybox)
-* Ambisonic audio support on Windows 10 "RS4" 
+* Ambisonic audio support on Windows 10 Spring Creators Update (aka "RS4") 
 
 ## Breaking Changes in version 1.5 
 * The plugin now recreates the playback texture every time frame resolution changes. We added TextureUpdated event for you to handle these changes. 
@@ -85,7 +85,7 @@ When rendering stereoscopic videos, **the plugin converts stereoscopic frames to
 In your custom shaders, if you want to handle 180-degree videos or single-frame cubemaps, they all usually have no corresponding metadata, and must be handled in the shader based on the custom medatada. 
 
 ## Ambisonic Audio 
-**Ambisonic audio in the plugin requires Windows 10 "RS4"**, currently [available](https://insider.windows.com/en-us/) for Windows Insiders. You can join Windows Insiders Program [here](https://insider.windows.com/en-us/insidersigninmsa/). 
+**Ambisonic audio in the plugin requires Windows 10 Spring Creators Update (aka "RS4")**, currently [available](https://insider.windows.com/en-us/) for Windows Insiders. You can join Windows Insiders Program [here](https://insider.windows.com/en-us/insidersigninmsa/). 
 
 Underlying MediaPlayer API only handles Ambionic Audio when [SA3D metedata box](https://github.com/google/spatial-media/blob/master/docs/spatial-audio-rfc.md) is presented, as per [Spatial Audio RFC](https://github.com/google/spatial-media/blob/master/docs/spatial-audio-rfc.md). You don't need to set any options or perform initialization for using Ambisonic Audio. Once your video file or stream has SA3D box, Media Player will handle Ambisonic audio stream, spatialize and binauralize it, tracking the headset rotation internally. 
 
