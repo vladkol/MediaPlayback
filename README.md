@@ -15,7 +15,7 @@ Primarily targeting [Windows Mixed Reality](https://developer.microsoft.com/en-u
 MediaPlaybackUnity is a Unity project covering 3 key scenarios: 
 * Regular video playback with Adaptive Streaming, MediaPlayback.unity scene  
 * 360 video playback (stereo/mono), MediaPlayback360.unity scene
-* 360 video playback (stereo/mono) on Skybox, Skyboz360Stereo.unity scene 
+* 360 video playback (stereo/mono) on Skybox, Skybox360Stereo.unity scene 
 There is also a demo scene showing how to play video files from so called 'known folders' on Universal Windows Platform (Video library in this case). The scene is in MediaPlaybackUnity\Assets\Scenes\UWPTest folder. 
 
 Supported Unity versions: 
