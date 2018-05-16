@@ -23,7 +23,7 @@ Supported Unity versions:
 * 2017.2.1
 * 2017.3.x
 * 2017.4.x
-* 2018.1.x betas (in testing) 
+* 2018.1.x 
 
 ## New in this version (1.5) 
 * The texture pipeline has been redesigned for supporting Stereoscopic videos with correspondding metadata 

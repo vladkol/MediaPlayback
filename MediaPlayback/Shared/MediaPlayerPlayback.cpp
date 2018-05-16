@@ -75,6 +75,24 @@ void CMediaPlayerPlayback::GraphicsDeviceReady(IUnityInterfaces* pUnityInterface
 	}
 }
 
+
+// static method the plugin core calls evey time Unity issues a render event (GL.IssuePluginEvent) 
+void CMediaPlayerPlayback::UnityRenderEvent()
+{
+	auto lock = m_playbackVectorMutex.Lock();
+
+	// Due to threading issues, we have to defer CreatePlaybackTextures to this method 
+	for (size_t i = 0; i < m_playbackObjects.size(); i++)
+	{
+		if (m_playbackObjects[i] != nullptr && !m_playbackObjects[i]->m_releasing && m_playbackObjects[i]->m_createTextures)
+		{
+			m_playbackObjects[i]->m_createTextures = false;
+			m_playbackObjects[i]->CreatePlaybackTextures();
+		}
+	}
+}
+
+
 _Use_decl_annotations_
 HRESULT CMediaPlayerPlayback::CreateMediaPlayback(
     UnityGfxRenderer apiType, 
@@ -129,6 +147,7 @@ CMediaPlayerPlayback::CMediaPlayerPlayback()
 	, m_make1080MaxWhenNoHWDecoding(true) 
 	, m_releasing(false)
 	, m_firstInitializationDone(false)
+	, m_createTextures(false)
 {
 	ZeroMemory(&m_textureDesc, sizeof(m_textureDesc));
 }
@@ -1266,7 +1285,10 @@ HRESULT CMediaPlayerPlayback::OnSizeChanged(ABI::Windows::Media::Playback::IMedi
 	if (width && height)
 	{
 		ReleaseTextures();
-		CreatePlaybackTextures();
+
+		// Do not call CreatePlaybackTexures() here, it causes threading issues on Unity's D3D11 device
+		// Instead, set m_createTextures to true, so next time we receive a rendering event (GL.IssuePluginEvent), we create textures 
+		m_createTextures = true;
 	}
 
 	return S_OK;

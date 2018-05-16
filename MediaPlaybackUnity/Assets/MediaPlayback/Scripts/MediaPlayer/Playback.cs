@@ -299,6 +299,8 @@ namespace MediaPlayer
             textureWidth = newTextureWidth;
             textureHeight = newTextureHeight;
 
+            Debug.LogFormat("Video texture updated: {0}x{1}", textureWidth, textureHeight);
+
             // create native texture for playback
             IntPtr nativeTexture = IntPtr.Zero;
             byte isStereoscopicByte = 0;
@@ -442,6 +444,10 @@ namespace MediaPlayer
                 needToUpdateTexture = false;
                 UpdateTexture(currentMediaDescription.width, currentMediaDescription.height);
             }
+            else
+            {
+                GL.IssuePluginEvent(Plugin.GetRenderEventFunc(), -1);
+            }
         }
 
 
@@ -450,7 +456,7 @@ namespace MediaPlayer
             if (TextureUpdated != null)
             {
 
-#if UNITY_WSA_10_0
+#if UNITY_WSA_10_0 
                 if (!UnityEngine.WSA.Application.RunningOnAppThread())
                 {
                     UnityEngine.WSA.Application.InvokeOnAppThread(() =>

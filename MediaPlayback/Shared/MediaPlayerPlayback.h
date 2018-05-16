@@ -111,6 +111,7 @@ public:
 
 	static void GraphicsDeviceShutdown();
 	static void GraphicsDeviceReady(IUnityInterfaces* pUnityInterfaces);
+	static void UnityRenderEvent();
 
     static HRESULT CreateMediaPlayback(
         _In_ UnityGfxRenderer apiType, 
@@ -257,6 +258,7 @@ private:
 	bool m_noHW4KDecoding;
 	bool m_make1080MaxWhenNoHWDecoding;
 	bool m_releasing;
+	bool m_createTextures;
 
 private:
 	static bool m_deviceNotReady;

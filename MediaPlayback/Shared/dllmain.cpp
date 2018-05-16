@@ -227,15 +227,15 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API SetTimeFromUnity(floa
 // --------------------------------------------------------------------------
 // OnRenderEvent
 // This will be called for GL.IssuePluginEvent script calls; eventID will
-// be the integer passed to IssuePluginEvent. In this example, we just ignore
-// that value.
+// be the integer passed to IssuePluginEvent. 
 static void UNITY_INTERFACE_API OnRenderEvent(int eventID)
 {
+	CMediaPlayerPlayback::UnityRenderEvent();
 }
 
 
 // --------------------------------------------------------------------------
-// GetRenderEventFunc, an example function we export which is used to get a rendering event callback function.
+// GetRenderEventFunc, a function we export which is used to get a rendering event callback function.
 extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetRenderEventFunc()
 {
     return OnRenderEvent;
