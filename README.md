@@ -10,7 +10,7 @@ It gives you access to a broad range of media playback features:
 * Ambisonic Audio ([see below](https://github.com/vladkol/MediaPlayback/blob/master/README.md#ambisonic-audio))
 
 The plugin is built on top of [MediaPlayer](https://docs.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer) Universal Windows Platform API. 
-Primarily targeting [Windows Mixed Reality](https://developer.microsoft.com/en-us/windows/mixed-reality/mixed_reality), it also supports Windows Standalone (desktop) apps built with Unity. 
+Primarily targeting [Windows Mixed Reality](https://developer.microsoft.com/en-us/windows/mixed-reality/mixed_reality), it also supports Windows Standalone (desktop and OpenVR) apps built with Unity. 
   
 MediaPlaybackUnity is a Unity project covering 3 key scenarios: 
 * Regular video playback with Adaptive Streaming, MediaPlayback.unity scene  
@@ -19,22 +19,23 @@ MediaPlaybackUnity is a Unity project covering 3 key scenarios:
 There is also a demo scene showing how to play video files from so called 'known folders' on Universal Windows Platform (Video library in this case). The scene is in MediaPlaybackUnity\Assets\Scenes\UWPTest folder. 
 
 Supported Unity versions: 
-* 5.6.3 
-* 2017.2.1
+* 2017.2.1 
 * 2017.3.x
 * 2017.4.x
 * 2018.1.x 
 
-## New in this version (1.5) 
-* The texture pipeline has been redesigned for supporting Stereoscopic videos with correspondding metadata 
-* New 360VideoShader (360 Video/360 XR Stereo Panorama) for rendiring monoscopic and stereoscopic videos in stereoscopic mode on a single mesh for both eyes in Mixed Reality  
-* Skybox rendering support, including new stereoscopic 360VideoSkyboxShader for Skybox (360 Video/360 XR Skybox)
-* Ambisonic audio support on Windows 10 Spring Creators Update (aka "RS4") 
+## How to use 
+1. Download [MediaPlaybackDemo release package](https://github.com/vladkol/MediaPlayback/releases) or open MediaPlaybackUnity project from a cloned repo.
+2. Look how MediaPlayback.unity and MediaPlayback360.unity are structured. If you just want to play a video in your scene, use Playback and MediaPlaybackRunner components. 
 
-## Breaking Changes in version 1.5 
-* The plugin now recreates the playback texture every time frame resolution changes. We added TextureUpdated event for you to handle these changes. 
-* Playback component doesn't adjust material's shader parameters related to the frame layout and aspecy ratio automatically. It's not supposed to be handled in shaders. 
-* The plugin now detects sterescopic videos based on the metadata ([ST3D box](https://github.com/google/spatial-media/blob/master/docs/spherical-video-v2-rfc.md)). Once ST3D detected, MediaPlayer handles the stereoscopic frame, then the plugin renders all frames to the video texture in over/under layout. 
+## How to build
+Unity project already has all plugin binaries prebuilt. 
+For building the plugin, use [Visual Studio 2017](https://www.visualstudio.com/downloads/) with Windows Desktop, Universal Windows Platform and C++ toolsets installed. It also requires [Windows 10 Fall Creators update SDK](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk).
+
+* Open **MediaPlayback/MediaPlayback.sln** 
+* Build **Desktop** and **UWP** projects 
+
+If built successfully, **MediaPlayback\Unity\MediaPlayback\** should have all Unity files required. *CopyMediaPlaybackDLLsToUnityProject.cmd* script copies plugin binary files to Unity project's Plugins folder.
 
 ## Properties and events 
 * Renderer targetRenderer - Renderer component to the object the frame will be rendered to. If null (none), other paramaters are ignored - you are expected to handle texture changes in TextureUpdated event handler. 
@@ -57,20 +58,9 @@ Supported Unity versions:
 * SubtitleItemEntered (object sender, string subtitlesTrackId, string textCueId, string language, string[] textLines) - text subtitle cue entered (must be shown) 
 * SubtitleItemExited (object sender, string subtitlesTrackId, string textCueId) - text subtitle cue exited (must be hidden) 
 
-## How to use 
-1. Download [MediaPlaybackDemo release package](https://github.com/vladkol/MediaPlayback/releases) or open MediaPlaybackUnity project from a cloned repo.
-2. Look how MediaPlayback.unity and MediaPlayback360.unity are structured. If you just want to play a video in your scene, use Playback and MediaPlaybackRunner components. 
-
-## How to build
-Unity project already has all plugin binaries prebuilt. 
-For building the plugin, use [Visual Studio 2017](https://www.visualstudio.com/downloads/) with Windows Desktop, Universal Windows Platform and C++ toolsets installed. It also requires [Windows 10 Fall Creators update SDK](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk).
-
-* Open **MediaPlayback/MediaPlayback.sln** 
-* Build **Desktop** and **UWP** projects 
-
-If built successfully, **MediaPlayback\Unity\MediaPlayback\** should have all Unity files required. *CopyMediaPlaybackDLLsToUnityProject.cmd* script copies plugin binary files to Unity project's Plugins folder.
-
 ## Rendering stereoscopic videos 
+The plugin now detects sterescopic videos based on the metadata ([ST3D box](https://github.com/google/spatial-media/blob/master/docs/spherical-video-v2-rfc.md)). Once ST3D detected, MediaPlayer handles the stereoscopic frame, then the plugin renders all frames to the video texture in over/under layout. 
+
 360VideoShader and 360VideoSkyboxShader are based on Unity's [SkyboxPanoramicShader](https://github.com/Unity-Technologies/SkyboxPanoramicShader). 
 They currently dont't support 180-degree videos. 
 
