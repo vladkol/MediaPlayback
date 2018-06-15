@@ -1,6 +1,6 @@
  # Windows 10 Media Playback for Unity
 
-Media Playback plugin for [Unity](https://unity3d.com/) on Windows 10 Fall Creators Update and beyond. 
+Media Playback plugin for [Unity](https://unity3d.com/) on Windows 10. 
 
 It gives you access to a broad range of media playback features: 
 * Local files, progressive and Adaptive Streaming (HLS, DASH) playback 
@@ -30,7 +30,7 @@ Supported Unity versions:
 
 ## How to build
 Unity project already has all plugin binaries prebuilt. 
-For building the plugin, use [Visual Studio 2017](https://www.visualstudio.com/downloads/) with Windows Desktop, Universal Windows Platform and C++ toolsets installed. It also requires [Windows 10 Fall Creators update SDK](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk).
+For building the plugin, use [Visual Studio 2017](https://www.visualstudio.com/downloads/) with Windows Desktop, Universal Windows Platform and C++ toolsets installed. It also requires [Windows 10 SDK for Fall Creators or later](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk).
 
 * Open **MediaPlayback/MediaPlayback.sln** 
 * Build **Desktop** and **UWP** projects 
@@ -75,7 +75,7 @@ When rendering stereoscopic videos, **the plugin converts stereoscopic frames to
 In your custom shaders, if you want to handle 180-degree videos or single-frame cubemaps, they all usually have no corresponding metadata, and must be handled in the shader based on the custom medatada. 
 
 ## Ambisonic Audio 
-**Ambisonic audio in the plugin requires Windows 10 Spring Creators Update (aka "RS4")**, currently [available](https://insider.windows.com/en-us/) for Windows Insiders. You can join Windows Insiders Program [here](https://insider.windows.com/en-us/insidersigninmsa/). 
+**Ambisonic audio in the plugin requires Windows 10 April 2018 Update (aka "RS4")**, currently [available](https://insider.windows.com/en-us/) for Windows Insiders. You can join Windows Insiders Program [here](https://insider.windows.com/en-us/insidersigninmsa/). 
 
 Underlying MediaPlayer API only handles Ambionic Audio when [SA3D metedata box](https://github.com/google/spatial-media/blob/master/docs/spatial-audio-rfc.md) is presented, as per [Spatial Audio RFC](https://github.com/google/spatial-media/blob/master/docs/spatial-audio-rfc.md). You don't need to set any options or perform initialization for using Ambisonic Audio. Once your video file or stream has SA3D box, Media Player will handle Ambisonic audio stream, spatialize and binauralize it, tracking the headset rotation internally. 
 

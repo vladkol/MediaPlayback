@@ -1,11 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-<<<<<<< HEAD
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaPlaybackUnity", "Assembly-CSharp.csproj", "{A9C0D76C-5136-DECA-0C6B-7531E6951C35}"
-=======
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaPlaybackUnity", "MediaPlaybackUnity.csproj", "{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}"
->>>>>>> 9a7cf994deff43ca89ad368a188604bae99081a7
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
