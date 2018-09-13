@@ -1,0 +1,69 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28016.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaPlaybackUnity", "MediaPlaybackUnity\MediaPlaybackUnity.csproj", "{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4A859119-6730-4612-987F-DABF98F213ED} = {4A859119-6730-4612-987F-DABF98F213ED}
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41} = {E0656E50-00DD-4E56-9207-A415F7AB1F41}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UWP", "MediaPlaybackPlugin\UWP\UWP.vcxproj", "{4A859119-6730-4612-987F-DABF98F213ED}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MediaPlaybackPlugin", "MediaPlaybackPlugin", "{43D07CEF-C354-4287-84E1-A67E55782C91}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shared", "MediaPlaybackPlugin\Shared\Shared.vcxitems", "{FE4A5965-EC67-4F68-B11D-6608906EF016}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Desktop", "MediaPlaybackPlugin\Desktop\Desktop.vcxproj", "{E0656E50-00DD-4E56-9207-A415F7AB1F41}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		MediaPlaybackPlugin\Shared\Shared.vcxitems*{4a859119-6730-4612-987f-dabf98f213ed}*SharedItemsImports = 4
+		MediaPlaybackPlugin\Shared\Shared.vcxitems*{e0656e50-00dd-4e56-9207-a415f7ab1f41}*SharedItemsImports = 4
+		MediaPlaybackPlugin\Shared\Shared.vcxitems*{fe4a5965-ec67-4f68-b11d-6608906ef016}*SharedItemsImports = 9
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}.Debug|x64.Build.0 = Debug|Any CPU
+		{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}.Debug|x86.Build.0 = Debug|Any CPU
+		{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}.Release|x64.ActiveCfg = Release|Any CPU
+		{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}.Release|x64.Build.0 = Release|Any CPU
+		{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}.Release|x86.ActiveCfg = Release|Any CPU
+		{AA69C1D9-E729-62CD-63AD-AA5C2361CB78}.Release|x86.Build.0 = Release|Any CPU
+		{4A859119-6730-4612-987F-DABF98F213ED}.Debug|x64.ActiveCfg = Debug|x64
+		{4A859119-6730-4612-987F-DABF98F213ED}.Debug|x64.Build.0 = Debug|x64
+		{4A859119-6730-4612-987F-DABF98F213ED}.Debug|x86.ActiveCfg = Debug|Win32
+		{4A859119-6730-4612-987F-DABF98F213ED}.Debug|x86.Build.0 = Debug|Win32
+		{4A859119-6730-4612-987F-DABF98F213ED}.Release|x64.ActiveCfg = Release|x64
+		{4A859119-6730-4612-987F-DABF98F213ED}.Release|x64.Build.0 = Release|x64
+		{4A859119-6730-4612-987F-DABF98F213ED}.Release|x86.ActiveCfg = Release|Win32
+		{4A859119-6730-4612-987F-DABF98F213ED}.Release|x86.Build.0 = Release|Win32
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41}.Debug|x64.ActiveCfg = Debug|x64
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41}.Debug|x64.Build.0 = Debug|x64
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41}.Debug|x86.ActiveCfg = Debug|Win32
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41}.Debug|x86.Build.0 = Debug|Win32
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41}.Release|x64.ActiveCfg = Release|x64
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41}.Release|x64.Build.0 = Release|x64
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41}.Release|x86.ActiveCfg = Release|Win32
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4A859119-6730-4612-987F-DABF98F213ED} = {43D07CEF-C354-4287-84E1-A67E55782C91}
+		{FE4A5965-EC67-4F68-B11D-6608906EF016} = {43D07CEF-C354-4287-84E1-A67E55782C91}
+		{E0656E50-00DD-4E56-9207-A415F7AB1F41} = {43D07CEF-C354-4287-84E1-A67E55782C91}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2E58B9E2-8122-4819-BEFF-D19575D068A3}
+	EndGlobalSection
+EndGlobal
