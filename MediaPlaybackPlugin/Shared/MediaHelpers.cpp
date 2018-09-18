@@ -43,12 +43,42 @@ inline bool SdkLayersAvailable()
 }
 #endif
 
+using namespace ABI::Windows::Storage;
+using namespace ABI::Windows::Media::Core;
+using namespace ABI::Windows::Media::Editing;
 using namespace ABI::Windows::Media::Streaming::Adaptive;
 using namespace ABI::Windows::Foundation;
 using namespace Microsoft::WRL::Wrappers;
 
 #include <ppl.h>
 #include <ppltasks.h>
+
+#define ReturnIfFailedHresult(hr)   { if (FAILED(hr)) return hr; } 
+
+HRESULT CreateMediaComposition()
+{
+	// Create the MediaComposition
+	// 1. Create a pointer to the interface
+	// 2. Create an instance of the MediaComposition using RoGetActivationFactory
+	ComPtr<IMediaComposition> composition;
+	HRESULT hr = RoGetActivationFactory(HSTRING(RuntimeClass_Windows_Media_Editing_MediaComposition), __uuidof(composition), &composition);
+	ReturnIfFailedHresult(hr);
+
+	// Async pattern example: https://github.com/jaimerodriguez/CampaignIdUWP/blob/master/WRL/WinRTComponent/WRLSample/WRLSample.Shared/CampaignIdHelper.cpp
+
+	// 1.	StorageFileStatics::CreateStreamedFileFromUriAsync
+	// StorageFileStatics->
+
+
+
+	// 2.	MediaClipStatics::CreateFromFileAsync 
+
+
+
+	// 3.	Similar to MediaClipStatics::CreateFormFileAsync
+
+	return hr;
+}
 
 void CreateAdaptiveMediaSourceFromUri(
 	_In_ PCWSTR szManifestUri,
@@ -85,6 +115,7 @@ void CreateAdaptiveMediaSourceFromUri(
 		&spMediaSourceStatics
 	);
 
+	// Pointer to the create operation
 	ComPtr<ICreateAdaptiveMediaSourceOperation> spCreateOperation;
 	Event operationCompleted(CreateEvent(nullptr, TRUE, FALSE, nullptr));
 
