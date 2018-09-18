@@ -44,6 +44,7 @@ inline bool SdkLayersAvailable()
 #endif
 
 using namespace ABI::Windows::Storage;
+using namespace ABI::Windows::Storage::Streams;
 using namespace ABI::Windows::Media::Core;
 using namespace ABI::Windows::Media::Editing;
 using namespace ABI::Windows::Media::Streaming::Adaptive;
@@ -55,21 +56,58 @@ using namespace Microsoft::WRL::Wrappers;
 
 #define ReturnIfFailedHresult(hr)   { if (FAILED(hr)) return hr; } 
 
+// Async pattern example: https://github.com/jaimerodriguez/CampaignIdUWP/blob/master/WRL/WinRTComponent/WRLSample/WRLSample.Shared/CampaignIdHelper.cpp
 HRESULT CreateMediaComposition()
 {
 	// Create the MediaComposition
-	// 1. Create a pointer to the interface
-	// 2. Create an instance of the MediaComposition using RoGetActivationFactory
 	ComPtr<IMediaComposition> composition;
 	HRESULT hr = RoGetActivationFactory(HSTRING(RuntimeClass_Windows_Media_Editing_MediaComposition), __uuidof(composition), &composition);
 	ReturnIfFailedHresult(hr);
 
-	// Async pattern example: https://github.com/jaimerodriguez/CampaignIdUWP/blob/master/WRL/WinRTComponent/WRLSample/WRLSample.Shared/CampaignIdHelper.cpp
+	// StorageFileStatics::CreateStreamedFileFromUriAsync
+	PCWSTR uriString = PCWSTR("http://something.com");
+	HSTRING displayNameWithExtension = HSTRING("");
 
-	// 1.	StorageFileStatics::CreateStreamedFileFromUriAsync
-	// StorageFileStatics->
+	ComPtr<IUriRuntimeClassFactory> uriFactory;
+	ComPtr<IUriRuntimeClass> uri;
+	ComPtr<IRandomAccessStreamReference> thumbnail;
+	ComPtr<IStorageFileStatics> storageFileStatics; 
+	ComPtr<__FIAsyncOperation_1_Windows__CStorage__CStorageFile_t> asyncOperation;
 
+	// Generate Uri
+	ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Foundation_Uri).Get(), &uriFactory);
+	uriFactory->CreateUri(HStringReference(uriString).Get(), &uri);
 
+	// Generate thumbnail
+	
+
+	// Get StorageFileStatics
+	ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Storage_StorageFile).Get(), &storageFileStatics);
+	
+	// Make the async call
+	hr = storageFileStatics->CreateStreamedFileFromUriAsync(
+		displayNameWithExtension,
+		uri.Get(),
+		thumbnail.Get(),
+		&asyncOperation);
+
+	if (SUCCEEDED(hr))
+	{
+		Event asyncFinished(CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS));
+		auto callback = Microsoft::WRL::Callback<Implements<RuntimeClassFlags<ClassicCom>, IAsyncOperationCompletedHandler<StorageFile*>, FtmBase>>(
+			[&](IAsyncOperation<StorageFile*>* operation, AsyncStatus status)
+		{
+			if (status == AsyncStatus::Completed)
+			{
+				ComPtr<ABI::Windows::Storage::IStorageFile> storageFile;
+				hr = operation->GetResults(&storageFile);
+				if (SUCCEEDED(hr) && storageFile != nullptr)
+				{
+
+				}
+			}
+		});
+	}
 
 	// 2.	MediaClipStatics::CreateFromFileAsync 
 
