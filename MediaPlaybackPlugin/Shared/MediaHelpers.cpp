@@ -54,6 +54,8 @@ using namespace Microsoft::WRL::Wrappers;
 #include <ppl.h>
 #include <ppltasks.h>
 
+#define ReturnIfFailedHresult(hr)   { if (FAILED(hr)) return hr; }  
+
 // Async pattern example: https://github.com/jaimerodriguez/CampaignIdUWP/blob/master/WRL/WinRTComponent/WRLSample/WRLSample.Shared/CampaignIdHelper.cpp
 HRESULT CreateMediaComposition(IMediaComposition* resultComposition)
 {
@@ -74,10 +76,9 @@ HRESULT CreateMediaComposition(IMediaComposition* resultComposition)
 }
 
 // StorageFileStatics::CreateStreamedFileFromUriAsync
-HRESULT CreateStreamedFileFromUriAsync(IStorageFile* resultStorageFile)
+HRESULT StorageFile_CreateStreamedFileFromUriAsync(PCWSTR filePath, HSTRING fileNameWithExtension, IStorageFile* resultStorageFile)
 {
-	PCWSTR uriString = PCWSTR("http://something.com");
-	HSTRING displayNameWithExtension = HSTRING("someFile.abc");
+	HRESULT hr = S_OK;
 
 	ComPtr<IUriRuntimeClassFactory> uriFactory;
 	ComPtr<IUriRuntimeClass> uri;
@@ -85,17 +86,22 @@ HRESULT CreateStreamedFileFromUriAsync(IStorageFile* resultStorageFile)
 	ComPtr<IStorageFileStatics> storageFileStatics;
 	ComPtr<__FIAsyncOperation_1_Windows__CStorage__CStorageFile_t> asyncOperation;
 
-	// Generate Uri
-	ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Foundation_Uri).Get(), &uriFactory);
-	uriFactory->CreateUri(HStringReference(uriString).Get(), &uri);
+	// Get Uri factory
+	hr = ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Foundation_Uri).Get(), &uriFactory);
+	ReturnIfFailedHresult(hr);
+
+	hr = uriFactory->CreateUri(HStringReference(filePath).Get(), &uri);
+	ReturnIfFailedHresult(hr);
 
 	// Get thumbnail
 	// TODO: Get a IRandomAccessStreamReference to the thumbnail
 
 	// Get StorageFileStatics to make the async call
-	ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Storage_StorageFile).Get(), &storageFileStatics);
-	HRESULT hr = storageFileStatics->CreateStreamedFileFromUriAsync(
-		displayNameWithExtension,
+	hr = ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Storage_StorageFile).Get(), &storageFileStatics);
+	ReturnIfFailedHresult(hr);
+
+	hr = storageFileStatics->CreateStreamedFileFromUriAsync(
+		fileNameWithExtension,
 		uri.Get(),
 		thumbnail.Get(),
 		&asyncOperation);
@@ -134,15 +140,95 @@ HRESULT CreateStreamedFileFromUriAsync(IStorageFile* resultStorageFile)
 }
 
 // 2.	MediaClipStatics::CreateFromFileAsync 
-HRESULT CreateFromFileAsync()
+HRESULT MediaClip_CreateFromFileAsync(ComPtr<IStorageFile> file, IMediaClip* resultMediaClip)
 {
+	HRESULT hr = S_OK;
 
+	ComPtr<IMediaClipStatics> mediaClipStatics;
+	ComPtr<__FIAsyncOperation_1_Windows__CMedia__CEditing__CMediaClip_t> asyncOperation;
+	
+	hr = ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Media_Editing_MediaClip).Get(), &mediaClipStatics);
+	ReturnIfFailedHresult(hr);
+
+	hr = mediaClipStatics->CreateFromFileAsync(file.Get(), &asyncOperation);
+
+	if (SUCCEEDED(hr))
+	{
+		// Create an event to catch when the async call has finished
+		Event asyncFinished(CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS));
+		auto callback = Microsoft::WRL::Callback<Implements<RuntimeClassFlags<ClassicCom>, IAsyncOperationCompletedHandler<MediaClip*>, FtmBase>>(
+			[&](IAsyncOperation<MediaClip*>* operation, AsyncStatus status)
+		{
+			if (status == AsyncStatus::Completed)
+			{
+				hr = operation->GetResults(&resultMediaClip);
+			}
+			else if (status == AsyncStatus::Error)
+			{
+				hr = E_FAIL;
+				RoOriginateError(hr, HStringReference(L"CreateFromFileAsync failed").Get());
+			}
+			SetEvent(asyncFinished.Get());
+			return S_OK;
+		});
+
+		asyncOperation->put_Completed(callback.Get());
+		DWORD waitResult = WaitForSingleObjectEx(asyncFinished.Get(), 10000, false);
+
+		if (waitResult != WAIT_OBJECT_0)
+		{
+			hr = E_FAIL;
+			RoOriginateError(hr, HStringReference(L"CreateFromFileAsync timed out").Get());
+		}
+	}
+
+	return hr;
 }
 
 // 3.	BackgroundAudioTrackStatics::CreateFromFileAsync
-HRESULT CreateFromFileAsync()
+HRESULT BackgroundAudioTrack_CreateFromFileAsync(ComPtr<IStorageFile> file, IBackgroundAudioTrack* resultBackgroundAudioTrack)
 {
+	HRESULT hr = S_OK;
 
+	ComPtr<IBackgroundAudioTrackStatics> backgroundAudioTrackStatics;
+	ComPtr<__FIAsyncOperation_1_Windows__CMedia__CEditing__CBackgroundAudioTrack_t> asyncOperation;
+
+	hr = ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Media_Editing_BackgroundAudioTrack).Get(), &backgroundAudioTrackStatics);
+	ReturnIfFailedHresult(hr);
+
+	hr = backgroundAudioTrackStatics->CreateFromFileAsync(file.Get(), &asyncOperation);
+
+	if (SUCCEEDED(hr))
+	{
+		// Create an event to catch when the async call has finished
+		Event asyncFinished(CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS));
+		auto callback = Microsoft::WRL::Callback<Implements<RuntimeClassFlags<ClassicCom>, IAsyncOperationCompletedHandler<BackgroundAudioTrack*>, FtmBase>>(
+			[&](IAsyncOperation<BackgroundAudioTrack*>* operation, AsyncStatus status)
+		{
+			if (status == AsyncStatus::Completed)
+			{
+				hr = operation->GetResults(&resultBackgroundAudioTrack);
+			}
+			else if (status == AsyncStatus::Error)
+			{
+				hr = E_FAIL;
+				RoOriginateError(hr, HStringReference(L"CreateFromFileAsync failed").Get());
+			}
+			SetEvent(asyncFinished.Get());
+			return S_OK;
+		});
+
+		asyncOperation->put_Completed(callback.Get());
+		DWORD waitResult = WaitForSingleObjectEx(asyncFinished.Get(), 10000, false);
+
+		if (waitResult != WAIT_OBJECT_0)
+		{
+			hr = E_FAIL;
+			RoOriginateError(hr, HStringReference(L"CreateFromFileAsync timed out").Get());
+		}
+	}
+
+	return hr;
 }
 
 void CreateAdaptiveMediaSourceFromUri(
