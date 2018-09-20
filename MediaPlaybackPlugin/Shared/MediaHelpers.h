@@ -42,6 +42,23 @@ DECLARE_INTERFACE_IID_(IAdaptiveMediaSourceCompletedCallback, IUnknown, "e25c01d
     STDMETHOD(OnAdaptiveMediaSourceCreated)(ICreateAdaptiveMediaSourceOperation* pOp, AsyncStatus status) PURE;
 };
 
+HRESULT CreateMediaComposition(
+	_In_ IMediaComposition* resultComposition);
+
+HRESULT StorageFile_CreateStreamedFileFromUriAsync(
+	_In_ PCWSTR filePath,
+	_In_ HSTRING fileNameWithExtension,
+	_In_ ComPtr<IRandomAccessStreamReference> thumbnail,
+	_COM_Outptr_ IStorageFile* resultStorageFile);
+
+HRESULT MediaClip_CreateFromFileAsync(
+	_In_ ComPtr<IStorageFile> file,
+	_COM_Outptr_ IMediaClip* resultMediaClip);
+
+HRESULT BackgroundAudioTrack_CreateFromFileAsync(
+	_In_ ComPtr<IStorageFile> file,
+	_COM_Outptr_ IBackgroundAudioTrack* resultBackgroundAudioTrack);
+
 HRESULT CreateMediaSource(
     _In_ LPCWSTR pszUrl,
     _COM_Outptr_ ABI::Windows::Media::Core::IMediaSource2** ppMediaSource);

@@ -76,13 +76,12 @@ HRESULT CreateMediaComposition(IMediaComposition* resultComposition)
 }
 
 // StorageFileStatics::CreateStreamedFileFromUriAsync
-HRESULT StorageFile_CreateStreamedFileFromUriAsync(PCWSTR filePath, HSTRING fileNameWithExtension, IStorageFile* resultStorageFile)
+HRESULT StorageFile_CreateStreamedFileFromUriAsync(PCWSTR filePath, HSTRING fileNameWithExtension, ComPtr<IRandomAccessStreamReference> thumbnail, IStorageFile* resultStorageFile)
 {
 	HRESULT hr = S_OK;
 
 	ComPtr<IUriRuntimeClassFactory> uriFactory;
 	ComPtr<IUriRuntimeClass> uri;
-	ComPtr<IRandomAccessStreamReference> thumbnail;
 	ComPtr<IStorageFileStatics> storageFileStatics;
 	ComPtr<__FIAsyncOperation_1_Windows__CStorage__CStorageFile_t> asyncOperation;
 
@@ -90,11 +89,9 @@ HRESULT StorageFile_CreateStreamedFileFromUriAsync(PCWSTR filePath, HSTRING file
 	hr = ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Foundation_Uri).Get(), &uriFactory);
 	ReturnIfFailedHresult(hr);
 
+	// Create uri object
 	hr = uriFactory->CreateUri(HStringReference(filePath).Get(), &uri);
 	ReturnIfFailedHresult(hr);
-
-	// Get thumbnail
-	// TODO: Get a IRandomAccessStreamReference to the thumbnail
 
 	// Get StorageFileStatics to make the async call
 	hr = ABI::Windows::Foundation::GetActivationFactory(HStringReference(RuntimeClass_Windows_Storage_StorageFile).Get(), &storageFileStatics);
